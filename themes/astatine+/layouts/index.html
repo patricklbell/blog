@@ -1,13 +1,25 @@
 {{ define "main" }}
-    {{ partial "info.html" . }}
     {{ .Content }}
+    {{ partial "info.html" . }}
+
+    {{ range (where .Pages "Section" "posts") }}
+        <h1 id="publications">Recent Posts</h1>
+        {{ range $i,$p := (first 5 .Pages) }}
+            {{ .Scratch.Set "oddeven" (modBool $i 2) }}
+            {{ partial "list-item.html" $p }}
+        {{ end }}
+    {{ end }}
+
     {{ with .Params.Publications }}
         <h2 id="publications">Publications</h2>
     {{ end }}
+
     {{ range .Params.Publications }}
         {{ partial "publication.html" . }}
     {{ end }}
+
     {{ range .Params.Publications }}
-    {{ partial "modal_publication.html" . }}
+        {{ partial "modal_publication.html" . }}
     {{ end }}
+    
 {{ end }}

@@ -13,7 +13,8 @@
   h2 {
     @apply text-2xl;
   }
-  h1, h2 {
+  h1,
+  h2 {
     @apply font-bold;
     @apply pb-1;
     @apply my-4;
@@ -24,12 +25,12 @@
   h3 {
     @apply font-bold;
     @apply text-xl;
-    @apply my-2
+    @apply my-2;
   }
   h4 {
     @apply font-bold;
     @apply text-lg;
-    @apply my-1
+    @apply my-1;
   }
   a {
     @apply text-blue-800;
@@ -43,12 +44,12 @@
     @apply border-slate-500;
   }
   code {
-      @apply text-base;
-      @apply rounded-sm;
-      @apply px-1;
-      @apply py-1;
-      @apply bg-slate-100;
-      @apply dark:bg-slate-800;
+    @apply text-base;
+    @apply rounded-sm;
+    @apply px-1;
+    @apply py-1;
+    @apply bg-slate-100;
+    @apply dark:bg-slate-800;
   }
   pre {
     overflow: auto;
@@ -61,22 +62,25 @@
     @apply bg-transparent;
     @apply text-sm;
   }
-  p, ul, ol {
-      @apply my-4;
+  p,
+  ul,
+  ol {
+    @apply my-4;
   }
   li {
-      @apply list-disc;
+    @apply list-disc;
   }
-  ul, ol {
-      @apply pl-10;
+  ul,
+  ol {
+    @apply pl-10;
   }
   hr {
-      @apply w-8/12;
-      @apply mx-auto;
-      @apply my-10;
-      @apply h-0.5;
-      @apply border-zinc-800;
-      @apply dark:border-zinc-500;
+    @apply w-8/12;
+    @apply mx-auto;
+    @apply my-10;
+    @apply h-0.5;
+    @apply border-zinc-800;
+    @apply dark:border-zinc-500;
   }
   dt {
     font-variant-caps: all-small-caps;
@@ -139,7 +143,8 @@
   #isso-thread h4 {
     @apply dark:text-zinc-100;
   }
-  #isso-thread input, #isso-thread .textarea {
+  #isso-thread input,
+  #isso-thread .textarea {
     @apply dark:bg-zinc-700;
   }
 }
