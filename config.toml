@@ -1,0 +1,100 @@
+baseURL = 'https://patricklbell.xyz/'
+languageCode = 'en-us'
+title = 'Patrick Bell'
+weight = 1
+theme = 'astatine+'
+resourceDir = "resources"
+contentDir = "content"
+disableRss = false
+enableInlineShortcodes = true
+
+DefaultContentLanguage = "en"
+googleAnalytics = ""
+enableRobotsTXT = true
+
+preserveTaxonomyNames = true
+rssLimit = 10
+paginate = 10
+
+# Code highlighting
+pygmentsCodefences = true
+pygmentsStyle = "native"
+
+[sitemap]
+  changefreq = "monthly"
+  priority = 0.5
+  filename = "sitemap.xml"
+
+# Taxonomies (only tags and categories are supported out of the box but you can
+# add more)
+[taxonomies]
+  tag = "tags"
+  #category = "categories"  
+
+# Configure permalinks style
+[permalinks]
+  post = "/:slug/"
+  page = "/:slug/"
+
+# Configure main navbar links. They can have a weight to select the order.
+# This links to content within the content/post/ folder
+[[menu.main]]
+  name = "Posts"
+  url = "/posts/"
+  weight = -120
+
+# Make the tags and categories pages accessible directly from the navbar.
+[[menu.main]]
+  name = "Tags"
+  url = "/tags/"
+  weight = -110
+
+# Make the tags and categories pages accessible directly from the navbar.
+#[[menu.main]]
+#    name = "Categories"
+#    url = "/categories/"
+#    weight = -100
+
+[[menu.main]]
+  name = "About"
+  url = "/about/"
+  weight = -90
+
+# Site wide params and SEO
+[params]
+  hostedKaTex = true
+  blogrss = true
+
+  # Site description. Individual pages can have descriptions too but if
+  # missing it will fallback to that one.
+  description = """The homepage of Patrick Bell's blog"""
+  # Author of the site
+  authorName = "Patrick Bell"
+  # Main image for the author. This will be the default image for SEO.
+
+  # Indicate if you host Katex yourself. Defaults to using the CDN KaTex.
+  # hostedKaTex = false
+
+  [params.imgname]
+    name = "favicon.png"
+
+  [params.links.monero]
+    name = "donate"
+    link = "/donation/"
+  [params.links.github]
+    name = "github"
+    link = "https://github.com/patricklbell"
+
+[privacy]
+  [privacy.disqus]
+    disable = true
+  [privacy.googleAnalytics]
+    disable = true
+  [privacy.instagram]
+    disable = true
+  [privacy.twitter]
+    disable = true
+  [privacy.vimeo]
+    disable = true
+  [privacy.youtube]
+    disable = true
