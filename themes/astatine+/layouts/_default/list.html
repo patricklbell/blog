@@ -1,0 +1,7 @@
+{{ define "main" }}
+    {{ .Content }}
+    {{ range $i,$p := .Pages }}
+        {{ .Scratch.Set "oddeven" (modBool $i 2) }}
+        {{ partial "list-item.html" $p }}
+    {{ end }}
+{{ end }}

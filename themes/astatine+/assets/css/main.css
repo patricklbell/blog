@@ -1,0 +1,162 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+@layer base {
+  body {
+    @apply tracking-wide;
+    @apply dark:bg-zinc-800;
+    @apply dark:text-zinc-100;
+  }
+  h1 {
+    @apply text-3xl;
+  }
+  h2 {
+    @apply text-2xl;
+  }
+  h1, h2 {
+    @apply font-bold;
+    @apply pb-1;
+    @apply my-4;
+    @apply border-b;
+    @apply border-zinc-800;
+    @apply dark:border-zinc-500;
+  }
+  h3 {
+    @apply font-bold;
+    @apply text-xl;
+    @apply my-2
+  }
+  h4 {
+    @apply font-bold;
+    @apply text-lg;
+    @apply my-1
+  }
+  a {
+    @apply text-blue-800;
+    @apply dark:text-blue-300;
+  }
+  a:hover {
+    @apply text-gray-900;
+    @apply dark:text-gray-200;
+    @apply border-b-2;
+    @apply dark:border-slate-200;
+    @apply border-slate-500;
+  }
+  code {
+      @apply text-base;
+      @apply rounded-sm;
+      @apply px-1;
+      @apply py-1;
+      @apply bg-slate-100;
+      @apply dark:bg-slate-800;
+  }
+  pre {
+    overflow: auto;
+    @apply px-2;
+    @apply mx-2;
+    @apply max-w-full;
+    @apply mb-6;
+  }
+  pre code {
+    @apply bg-transparent;
+    @apply text-sm;
+  }
+  p, ul, ol {
+      @apply my-4;
+  }
+  li {
+      @apply list-disc;
+  }
+  ul, ol {
+      @apply pl-10;
+  }
+  hr {
+      @apply w-8/12;
+      @apply mx-auto;
+      @apply my-10;
+      @apply h-0.5;
+      @apply border-zinc-800;
+      @apply dark:border-zinc-500;
+  }
+  dt {
+    font-variant-caps: all-small-caps;
+    @apply font-bold;
+  }
+  dd {
+    @apply mb-4;
+    @apply ml-8;
+  }
+  img {
+    @apply mx-auto;
+    @apply dark:brightness-[.8];
+    @apply dark:contrast-125;
+  }
+  figure {
+    @apply sm:mx-6;
+    @apply md:mx-12;
+  }
+  figcaption {
+    @apply text-center;
+    @apply dark:text-zinc-300;
+  }
+  blockquote {
+    @apply bg-slate-200;
+    @apply dark:bg-slate-700;
+    @apply my-8;
+    @apply sm:mx-0;
+    @apply md:mx-4;
+    @apply lg:mx-8;
+    @apply py-2;
+    @apply border-l-4;
+    @apply border-slate-400;
+    @apply pl-4;
+    @apply pr-2;
+    @apply italic;
+    @apply font-serif;
+    @apply text-lg;
+    @apply after:content-[close-quote];
+    @apply after:text-5xl;
+    @apply before:text-5xl;
+    @apply before:text-slate-400;
+    @apply after:text-slate-400;
+    @apply after:leading-[.1em];
+    @apply before:leading-[.1em];
+    @apply before:mr-1;
+    @apply after:mr-1;
+    @apply after:align-[-.4em];
+    @apply before:align-[-.4em];
+    @apply before:content-[open-quote];
+  }
+  blockquote p {
+    @apply inline;
+  }
+  .isso-comment-footer {
+    display: inline-flex;
+  }
+}
+
+@layer base {
+  #isso-thread h4 {
+    @apply dark:text-zinc-100;
+  }
+  #isso-thread input, #isso-thread .textarea {
+    @apply dark:bg-zinc-700;
+  }
+}
+
+@media screen and (min-width: 769px) {
+  .article input[type="checkbox"]:checked ~ label > img {
+    transform: scale(1.8);
+    cursor: zoom-out;
+    position: relative;
+    z-index: 999;
+    transition: transform 0.35s ease-in-out, z-index 0.35s step-start;
+  }
+
+  .article img.zoomCheck {
+    position: relative;
+    transition: transform 0.35s ease-in-out, z-index 0.35s step-end;
+    z-index: 990;
+    cursor: zoom-in;
+  }
+}

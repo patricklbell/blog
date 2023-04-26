@@ -1,0 +1,39 @@
+<div> 
+<div class="mb-10">
+  <a href="{{ .Permalink }}" itemprop="url" class="border-none text-zinc-700 dark:text-zinc-300 block">
+  <div class="grid grid-cols-2 gap-0 rounded-md py-2
+            text-zinc-700 dark:text-zinc-300
+            hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-all ease-in-out">
+    {{ if .Params.Img }}
+    <img itemprop="image" alt="{{ .Params.Img.Alt }}"
+         src="{{ .Params.Img.Name }}"
+         class="pl-4 pr-6 py-4">
+    {{end}}
+
+    <div class="border-none pb-0 mx-5 my-0">
+      <h3 itemprop="name">{{ .Title }}</h3>
+      {{ if .Params.Caption }}
+      <i itemprop="caption" class="text-md border-none text-zinc-600 dark:text-zinc-300 pb-0 my-2">{{ .Params.Caption }}</i>
+      {{ end }}
+      <div class="list-item-date col-start-4 text-neutral-600 dark:text-neutral-400" itemprop="datePublished"
+        content="{{ .PublishDate.Format "2006-01-02T15:04:05Z0700" }}">
+        {{ .PublishDate.Format "2006.01.02" }}
+      </div>
+      <div class="block">
+      {{ partial "taxonomy.html" . }}
+      </div>
+
+      {{ if .Params.Headline }}
+      <div class="mt-1">
+          <i itemprop="headline"
+             class="article-headline p-summary text-base text-neutral-600 dark:text-neutral-400">
+              {{ .Params.Headline }}
+          </i>
+      </div>
+      {{ end }}
+  </div>
+  </a>
+
+  <meta itemprop="author" content="{{ .Site.Params.authorName }}">
+</div>
+</div>

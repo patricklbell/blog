@@ -1,0 +1,32 @@
+<footer class="footer container h-10 text-center mt-1">
+  <ul class="pl-0 mt-1">
+    {{ if isset .Site.Params "blogrss" }}
+    <li class="first:before:content-none before:content-['•'] inline-block list-none">
+      <a class="rss-link inline-block text-neutral-800 dark:text-neutral-400 border-none"
+          href="{{ .Site.BaseURL }}{{ "posts/index.xml" }}"
+          type="application/rss+xml"
+          target="_blank">
+        {{ i18n "footerRSS" }}
+        <!-- <div class="rss-icon h-4 w-4 max-h-full inline-block"> -->
+        <!--   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M0 0v24h24v-24h-24zm6.168 20c-1.197 0-2.168-.969-2.168-2.165s.971-2.165 2.168-2.165 2.167.969 2.167 2.165-.97 2.165-2.167 2.165zm5.18 0c-.041-4.029-3.314-7.298-7.348-7.339v-3.207c5.814.041 10.518 4.739 10.56 10.546h-3.212zm5.441 0c-.021-7.063-5.736-12.761-12.789-12.792v-3.208c8.83.031 15.98 7.179 16 16h-3.211z"/></svg> -->
+        <!-- </div> -->
+
+      </a>
+    </li>
+    {{ end }}
+    {{ range $p := .Site.Params.Links }}
+    <li class="ml-2 first:before:content-none before:content-['•']
+               inline-block list-none">
+
+      <a class="ml-2 text-neutral-800
+                dark:text-neutral-400 border-none"
+         href={{$p.Link}}>{{$p.Name}}</a>
+    </li>
+    {{ end }}
+    <li class="ml-2 first:before:content-none before:content-['•']
+                text-neutral-800 dark:text-neutral-400 inline-block list-none">
+      <span class="ml-2">© {{ .Site.Params.authorName}} {{ now.Format "2006" }}</span>
+    </li>
+  </ul>
+</footer>
+{{ partial "extra_js.html" . }}
