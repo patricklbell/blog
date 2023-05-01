@@ -4,6 +4,9 @@ other = "rss"
 [siteNotice]
 other = "Site notice"
 
+[toc]
+other = "Contents"
+
 [categories]
 other = "Categories"
 

@@ -7,7 +7,7 @@
     {{- $random := delimit (shuffle (seq 1 9)) "" -}}
     <input type="checkbox" id="zoomCheck-{{$random}}" hidden>
     <label for="zoomCheck-{{$random}}">
-        <img class="zoomCheck" src="{{ .Get "src" }}"
+        <img class="zoomCheck rounded-sm" src="{{ .Get "src" }}"
              {{- if or (.Get "alt") (.Get "caption") }}
              alt="{{ with .Get "alt" }}{{ . }}{{ else }}{{ .Get "caption" | markdownify| plainify }}{{ end }}"
              {{- end -}}

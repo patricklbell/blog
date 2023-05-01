@@ -1,10 +1,11 @@
 ---
-date: "2022-12-27"
+date: "2022-08-05"
 title: "Modifying Spline Algorithms to Draw Proteins with WebAssembly"
 author: "Patrick Bell"
 slug: "visualising-proteins"
 tags: [ "Graphics", "Mathematics"]
 katex: true
+comments: true
 caption: "An overview of the mathematics and programming involved in rendering Ribbon Diagrams"
 img:
   name: "/haemoglobin_chains.png"
@@ -13,7 +14,7 @@ img:
 
 *This post is a modified version of a presentation I gave about my protein visualiser [available online](https://patricklbell.github.io/chemical_visualizer/) with WebAssembly*
 
-Proteins are the building blocks of our cells and allow for the incredibly complicated behaviours of the body. Knowing how important proteins are then, models of protein's structures allow scientists to quickly compare and understand a protein's features. One protein model is the [ribbon diagram](https://en.wikipedia.org/wiki/Ribbon_diagram) which has been around since the 1980s. They were originally hand drawn but were quickly created by computers. A Ribbon Diagram shows the shape of a protein by passing between the alpha-carbons (which are central to the peptide bonds of a polypeptide chain) of each amino-acid. The key part for creating our ribbon diagrams is that it simplifies the thousands of individual atoms down to relatively few points which we need to connect into a shape.
+Proteins are the building blocks of our cells and allow for the incredibly complicated behaviours of the body. Knowing how important proteins are then, models of protein's structures allow scientists to quickly compare and understand a protein's features. One protein model is the [ribbon diagram](https://en.wikipedia.org/wiki/Ribbon_diagram) which has been around since the 1980s. They were originally hand drawn but were quickly created by computers. A Ribbon Diagram shows the shape of a protein by drawing 'ribbons' between the alpha-carbons (which are central to the peptide bonds of a polypeptide chain) of each amino-acid. Looking at only the alpha-carbons simplifies the thousands of individual atoms down to relatively few points which can be connected into a shape.
 
 {{<figure src="/IgG.png" link="https://www.rcsb.org/structure/1igt" caption="*The IgG2 antibody of a mouse, left are the input atoms, right is the ribbon diagram*" >}}
 
@@ -21,7 +22,7 @@ Proteins are the building blocks of our cells and allow for the incredibly compl
 Before we can create our diagrams we first need the atoms which make up our protein, thankfully there is a well established (and documented!) format (PDB) along with a database of proteins called the [Worldwide Protein Data Bank](https://www.wwpdb.org/). While the format is a bit old, it really isn't too bad, [my reader (See loadPdbFile)](https://github.com/patricklbell/chemical_visualizer/blob/500440aff3c2200fac61c7097174478f0ba4a6a2/src/loader.cpp) came out at ~300 lines of mutant $C$ and $C\texttt{++}$. Or you could use one of many [libraries](https://mmcif.wwpdb.org/docs/software-resources.html) suggested by the PDB people. Either way you now have your atoms and bonds loaded into a nice and pretty data structure. For my online viewer, reading is quick enough that I don't even bother caching anything, the PDB is processed every page load although this could certainly be improved. On to rendering!
 
 ## A Brief Word On Rendering
-To draw our proteins, like pretty much all 3D graphics, we need to form meshes which the GPU can understand. These meshes consist of triangles, each consisting of three vertices in 3D space which together enclose the ribbon of a protein, for correct lighting we also need a normal for each vertex. I'm going to skip over the details of my renderer, ultimately you could draw the meshes with anything you liked or even export 3D models.
+To draw our proteins, like pretty much all 3D graphics, we need to form meshes which the GPU can understand. These meshes consist of triangles, each consisting of three vertices in 3D space which together enclose the ribbon of a protein, for correct lighting we also need a normal for each vertex. I'm going to skip over the details of my renderer, ultimately you could draw the meshes with any 3D program you liked or even export 3D models.
 
 {{<figure src="/protein-wireframe.png" link="https://www.rcsb.org/structure/1bzv" caption="*The triangles which make up a Ribbon Diagram*" >}}
 

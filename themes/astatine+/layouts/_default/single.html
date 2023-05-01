@@ -1,5 +1,6 @@
 {{ define "main" }}
-<article class="article h-entry" itemprop="mainEntity" itemscope itemtype="http://schema.org/BlogPosting">
+<article id="article" class="article h-entry relative" itemprop="mainEntity" itemscope itemtype="http://schema.org/BlogPosting">
+    <div id="article-start"></div>
     <div class="title-container">
         <h1 class="article-title p-name" itemprop="name">{{ .Title }}</h1>
         {{ if .Params.Headline }}
@@ -13,7 +14,7 @@
                 <time itemprop="datePublished" class="dt-published"
                     datetime="{{ .PublishDate.Format "2006-01-02T15:04:05Z0700" }}"
                     content="{{ .PublishDate.Format "2006-01-02T15:04:05Z0700" }}">
-                    {{ .PublishDate.Format "2006.01.02" }}
+                    {{ .PublishDate.Format "2006/01/02" }}
                 </time>
             </a>
             {{ end }}
@@ -32,8 +33,16 @@
         {{ end }}
     </div>
 
+    {{ if ne .Params.toc false -}}
+    <div class="hidden xl:block sticky top-10">
+        <nav class="absolute left-[100%] pl-16 min-w-max" aria-label="Secondary navigation">
+            {{ partial "sidebar/toc.html" . }}
+        </nav>
+    </div>
+    {{ end -}}
+
     <div class="article-content e-content" itemprop="articleBody">
-        {{ .Content }}
+        {{ .Content | replaceRE "(<h[2-5] id=\"(.+)\".*?>)" "${1}<a class=\"border-none\" href=\"#${2}\">#</a>&nbsp;" | safeHTML }}
     </div>
 
     {{ partial "taxonomy.html" . }}
@@ -46,6 +55,11 @@
         {{ .Lastmod.Format "2006.01.02" }}
         </span>
     </div>
+    <div id="article-end"></div>
+
+    {{ if.Params.comments }}
+    <div id="remark42"></div>
+    {{ end }}
     {{ end }}
 </article>
 {{ end }}
