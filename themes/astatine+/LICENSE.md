@@ -1,8 +1,6 @@
 MIT License
 
-Copyright (c) 2019 Hugo Cisneros
-Copyright (c) 2018 Tim Krieger
-Copyright (c) 2016 Jonathan Rutheiser (original theme)
+Copyright (c) 2020 Patrick Bell
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

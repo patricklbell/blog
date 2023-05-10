@@ -1,0 +1,36 @@
+{
+  "name": "blog",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "dev:hugo": "npm exec hugo server",
+    "dev:tailwind": "tailwind build -i themes/astatine+/assets/css/main.css -o themes/astatine+/assets/css/style.css --watch",
+    "build:tailwind": "tailwind build -i themes/astatine+/assets/css/main.css -o themes/astatine+/assets/css/style.css",
+    "build:hugo": "npx hugo --gc --minify",
+    "dev": "npm run dev:tailwind & npm run dev:hugo",
+    "build": "npm run build:tailwind && npm run build:hugo",
+    "clean": "shx rm -rf public resources"
+  },
+  "dependencies": {
+    "hugo-bin": "^0.102.0",
+    "postcss": "^8.4.18",
+    "postcss-cli": "^10.0.0",
+    "tailwind-watch": "^0.0.6",
+    "tailwindcss": "^3.2.1"
+  },
+  "devDependencies": {
+    "shx": "^0.3.4"
+  },
+  "otherDependencies": {
+    "hugo": "0.101.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/patricklbell/blog.git"
+  },
+  "author": "Patrick Bell",
+  "bugs": {
+    "url": "https://github.com/patricklbell/blog/issues"
+  },
+  "homepage": "https://patricklbell.xyz"
+}
