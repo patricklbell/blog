@@ -7,7 +7,7 @@
     "dev:tailwind": "tailwind build -i themes/astatine+/assets/css/main.css -o themes/astatine+/assets/css/style.css --watch",
     "build:tailwind": "tailwind build -i themes/astatine+/assets/css/main.css -o themes/astatine+/assets/css/style.css",
     "build:hugo": "npx hugo --gc --minify",
-    "dev": "npm run dev:tailwind & npm run dev:hugo",
+    "dev": "concurrently \"npm run dev:tailwind\" \"npm run dev:hugo\"",
     "build": "npm run build:tailwind && npm run build:hugo",
     "clean": "shx rm -rf public resources"
   },
@@ -19,6 +19,7 @@
     "tailwindcss": "^3.2.1"
   },
   "devDependencies": {
+    "concurrently": "^8.0.1",
     "shx": "^0.3.4"
   },
   "otherDependencies": {
