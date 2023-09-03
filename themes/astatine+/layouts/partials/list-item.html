@@ -5,7 +5,7 @@
       class="inline-block absolute border-none w-full h-full text-black dark:text-white hover:text-black hover:dark:text-white"
     ></a>
     <div
-      class="grid grid-cols-2 gap-0 rounded-md py-2 text-zinc-700 dark:text-zinc-300 group-hover:bg-zinc-50 dark:group-hover:bg-zinc-600 transition-all ease-in-out"
+      class="border border-zinc-50 dark:border-zinc-700 grid md:grid-cols-2 gap-0 rounded-md py-2 text-zinc-700 dark:text-zinc-300 group-hover:bg-zinc-50 dark:group-hover:bg-zinc-700 transition-all ease-in-out"
     >
       {{ if .Params.Img }}
       <img
@@ -32,7 +32,7 @@
         {{ end }} <div class="list-item-date col-start-4 text-neutral-600
         dark:text-neutral-400" itemprop="datePublished" content="{{
         .PublishDate.Format "2006-01-02T15:04:05Z0700" }}"> {{
-        .PublishDate.Format "2006/01/02" }}
+        .PublishDate.Format "02/01/2006" }}
       </div>
       <div class="relative z-10">
         <div class="absolute inline-block">{{ partial "taxonomy.html" . }}</div>

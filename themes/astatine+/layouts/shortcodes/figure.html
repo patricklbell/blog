@@ -1,4 +1,4 @@
-<figure{{ with .Get "class" }} class="{{ . }}"{{ end }}>
+<figure{{ with .Get "class" }} class="figure {{ . }}"{{ end }}>
     {{- if .Get "link" -}}
         <a href="{{ .Get "link" }}"{{ with .Get "target" }} target="{{ . }}"{{ end }}{{ with .Get "rel" }} rel="{{ . }}"{{ end }}>
     {{- end -}}
@@ -7,13 +7,30 @@
     {{- $random := delimit (shuffle (seq 1 9)) "" -}}
     <input type="checkbox" id="zoomCheck-{{$random}}" hidden>
     <label for="zoomCheck-{{$random}}">
-        <img class="zoomCheck rounded-sm" src="{{ .Get "src" }}"
+        {{ if isset .Params `darksrc` }}
+        <img class="mt-2 zoomCheck rounded-md hidden dark:block" src="{{ .Get "darksrc" }}"
+            {{- if or (.Get "alt") (.Get "caption") }}
+             alt="{{ with .Get "alt" }}{{ . }}{{ else }}{{ .Get "caption" | markdownify| plainify }}{{ end }}"
+             {{- end -}}
+             {{- with .Get "width" }} width="{{ . }}"{{ end -}}
+             {{- with .Get "height" }} height="{{ . }}"{{ end -}}
+        /><!-- Closing img tag -->
+        <img class="mt-2 zoomCheck rounded-md dark:hidden" src="{{ .Get "src" }}"
+            {{- if or (.Get "alt") (.Get "caption") }}
+             alt="{{ with .Get "alt" }}{{ . }}{{ else }}{{ .Get "caption" | markdownify| plainify }}{{ end }}"
+             {{- end -}}
+             {{- with .Get "width" }} width="{{ . }}"{{ end -}}
+             {{- with .Get "height" }} height="{{ . }}"{{ end -}}
+        /><!-- Closing img tag -->
+        {{ else }}
+        <img class="mt-2 zoomCheck rounded-md" src="{{ .Get "src" }}"
              {{- if or (.Get "alt") (.Get "caption") }}
              alt="{{ with .Get "alt" }}{{ . }}{{ else }}{{ .Get "caption" | markdownify| plainify }}{{ end }}"
              {{- end -}}
              {{- with .Get "width" }} width="{{ . }}"{{ end -}}
              {{- with .Get "height" }} height="{{ . }}"{{ end -}}
         /><!-- Closing img tag -->
+        {{ end }}
     </label>
 
     {{- if .Get "link" }}</a>{{ end -}}

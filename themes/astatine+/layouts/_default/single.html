@@ -2,7 +2,7 @@
 <article id="article" class="article h-entry relative" itemprop="mainEntity" itemscope itemtype="http://schema.org/BlogPosting">
     <div id="article-start"></div>
     <div class="title-container">
-        <h1 class="article-title p-name" itemprop="name">{{ .Title }}</h1>
+        <h1 class="article-title p-name pb-5" itemprop="name">{{ .Title }}</h1>
         {{ if .Params.Headline }}
         <b><i itemprop="headline" class="article-headline text-lg p-summary">
             {{ .Params.Headline }}
@@ -10,13 +10,13 @@
         {{ end }}
         <div class="flex justify-between items-center">
             {{ if not .Params.HideDate}}
-            <a class="text-lg text-gray-600 dark:text-gray-400 border-none u-url" href="{{ .Permalink }}">
+            <span class="text-lg text-gray-600 dark:text-gray-400 border-none u-url">
                 <time itemprop="datePublished" class="dt-published"
                     datetime="{{ .PublishDate.Format "2006-01-02T15:04:05Z0700" }}"
                     content="{{ .PublishDate.Format "2006-01-02T15:04:05Z0700" }}">
-                    {{ .PublishDate.Format "2006/01/02" }}
+                    {{ .PublishDate.Format "02/01/2006" }}
                 </time>
-            </a>
+            </span>
             {{ end }}
             {{ if not .Params.HideAuthor }}
                 {{ if .Params.Author }}
@@ -42,7 +42,7 @@
     {{ end -}}
 
     <div class="article-content e-content" itemprop="articleBody">
-        {{ .Content | replaceRE "(<h[2-5] id=\"(.+)\".*?>)" "${1}<a class=\"border-none\" href=\"#${2}\">#</a>&nbsp;" | safeHTML }}
+        {{ .Content | replaceRE "((<h[2-5] id=\"(.+)\".*?>)(.*)(</h[2-5]>))" "<div class=\"group\">${2} ${4} <a href=\"#${3}\" title=\"Permalink to this heading\" class=\"absolute px-2 border-none text-zinc-500 dark:text-zinc-500 hidden group-hover:inline-block\">¶</a> ${5} </div>" | safeHTML }}
     </div>
 
     {{ partial "taxonomy.html" . }}
@@ -52,13 +52,27 @@
         Last modified <span itemprop="dateModified"
                             datetime="{{ .Lastmod.Format  "2006-01-02T15:04:05Z0700" }}"
                             content="{{ .Lastmod.Format  "2006-01-02T15:04:05Z0700" }}">
-        {{ .Lastmod.Format "2006.01.02" }}
+        {{ .Lastmod.Format "02/01/2006" }}
         </span>
     </div>
     <div id="article-end"></div>
 
     {{ if.Params.comments }}
-    <div id="remark42"></div>
+    <div class="comments">
+        <script>
+            theme = isDark() ? 'github-dark' : 'github-light';
+            
+            let s = document.createElement('script');
+            s.src = 'https://utteranc.es/client.js';
+            s.setAttribute('repo', 'patricklbell/blog');
+            s.setAttribute('issue-term', 'pathname');
+            s.setAttribute('theme', theme);
+            s.setAttribute('crossorigin', 'anonymous');
+            s.setAttribute('async', '');
+            document.querySelector('div.comments').innerHTML = '';
+            document.querySelector('div.comments').appendChild(s);
+        </script>
+    </div>
     {{ end }}
     {{ end }}
 </article>
