@@ -55,8 +55,22 @@
     @apply scroll-smooth;
   }
 
+  .article-content {
+    @apply font-serif;
+  }
+
   html:focus-within {
     @apply scroll-smooth;
+  }
+
+  .article-content .floatright {
+    @apply max-w-[50%];
+    float: right;
+  }
+
+  .article-content .floatleft {
+    @apply max-w-[50%];
+    float: left;
   }
 
   body {
@@ -70,24 +84,23 @@
   }
 
   h1 {
+    @apply my-4;
     @apply text-3xl;
   }
   h2 {
     @apply text-2xl;
+    @apply mt-8;
+    @apply mb-2;
   }
   h1,
   h2 {
     @apply font-bold;
-    @apply pb-1;
-    @apply my-4;
-    @apply border-b;
-    @apply border-zinc-800;
-    @apply dark:border-zinc-500;
   }
   h3 {
     @apply font-bold;
     @apply text-xl;
-    @apply my-2;
+    @apply mt-2;
+    @apply mb-1;
   }
   h4 {
     @apply font-bold;
@@ -109,7 +122,7 @@
   code {
     @apply text-base;
     @apply rounded-sm;
-    @apply px-1;
+    @apply px-0;
     @apply py-1;
     @apply bg-slate-100;
     @apply dark:bg-slate-800;
@@ -117,12 +130,13 @@
   pre {
     overflow: auto;
     @apply px-2;
+    @apply py-2;
     @apply mx-2;
     @apply max-w-full;
     @apply mb-6;
+    @apply rounded-md;
   }
   pre code {
-    @apply bg-transparent;
     @apply text-sm;
   }
   p,
@@ -153,7 +167,8 @@
     @apply mb-4;
     @apply ml-8;
   }
-  img {
+  .article-content img {
+    @apply my-5;
     @apply mx-auto;
     @apply dark:brightness-[.8];
     @apply dark:contrast-125;
@@ -197,23 +212,10 @@
   blockquote p {
     @apply inline;
   }
-  .isso-comment-footer {
-    display: inline-flex;
-  }
-}
-
-@layer base {
-  #isso-thread h4 {
-    @apply dark:text-zinc-100;
-  }
-  #isso-thread input,
-  #isso-thread .textarea {
-    @apply dark:bg-zinc-700;
-  }
 }
 
 @media screen and (min-width: 769px) {
-  .article input[type="checkbox"]:checked ~ label > img {
+  .article-content input[type="checkbox"]:checked ~ label > img {
     transform: scale(1.8);
     cursor: zoom-out;
     position: relative;
@@ -221,7 +223,7 @@
     transition: transform 0.35s ease-in-out, z-index 0.35s step-start;
   }
 
-  .article img.zoomCheck {
+  .article-content img.zoomCheck {
     position: relative;
     transition: transform 0.35s ease-in-out, z-index 0.35s step-end;
     z-index: 990;

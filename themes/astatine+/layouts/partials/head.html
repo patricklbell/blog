@@ -63,6 +63,8 @@
 <link rel="pingback" href="https://webmention.io/{{ .Site.Params.Webmention }}/xmlrpc">
 {{ end }}
 <!-- Style configuration -->
+{{ $citestyle := resources.Get "css/hugo-cite.css" | resources.Minify }}
+<link rel="stylesheet" href="{{ $citestyle.Permalink }}">
 {{ $style := resources.Get "css/style.css" | resources.Minify }}
 <link rel="stylesheet" href="{{ $style.Permalink }}">
 <!-- Icon configuration -->
@@ -72,6 +74,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
 <link rel="manifest" href="/site.webmanifest">
 <link href="{{ .Site.BaseURL }}index.xml" type="application/atom+xml" rel="alternate" title="Sitewide Atom feed" />
+
 <meta name="theme-color" content="#ffffff">
 <!-- Common JS -->
 {{ $commonJs := resources.Get "js/common.js" | resources.Minify }}
