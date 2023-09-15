@@ -1,0 +1,73 @@
+\documentclass[tikz,convert={outfile=\jobname.svg}]{standalone}
+\usepackage{tikz}  
+\usepackage{tikz-3dplot} 
+\usepackage{amssymb}
+\usepackage{xifthen}
+
+\begin{document}
+
+\tdplotsetmaincoords{60}{110}
+
+%define polar coordinates for some vector
+%TODO: look into using 3d spherical coordinate system
+\pgfmathsetmacro{\radius}{1}
+\pgfmathsetmacro{\thetavec}{0}
+\pgfmathsetmacro{\phivec}{0}
+
+% %start tikz picture, and use the tdplot_main_coords style to implement the display 
+% %coordinate transformation provided by 3dplot
+% \begin{tikzpicture}[scale=5,tdplot_main_coords]
+%     %draw the main coordinate system axes
+%     \draw[thick,->] (0,0,0) -- (-1,0,0) node[anchor=south]{$z$};
+%     \draw[thick,->] (0,0,0) -- (0,1,0) node[anchor=north west]{$x$};
+%     \draw[thick,->] (0,0,0) -- (0,0,1) node[anchor=south]{$y$};
+
+%     \tdplotsetthetaplanecoords{\phivec}
+
+%     %draw some dashed arcs, demonstrating direct arc drawing
+%     \draw[dashed,tdplot_rotated_coords] (\radius,0,0) arc (0:90:\radius);
+
+%     \draw[dashed] (\radius,0,0) arc (0:360:\radius);
+%     \shade[ball color=blue!10!white,opacity=0.2] (1cm,0) arc (0:-180:1cm and 5mm) arc (180:0:1cm and 1cm);
+%     % (-z x y)
+%     \draw (0, 1, 0) node [circle, fill=blue, inner sep=.02cm] () {};
+%     \draw (0, 0, 1) node [circle, fill=green, inner sep=.02cm] () {};
+%     \draw (-1, 0, 0) node [circle, fill=red, inner sep=.02cm] () {};
+% \end{tikzpicture}
+
+%Ray from eye to ball
+% \begin{tikzpicture}[scale=5,tdplot_main_coords]
+%     \foreach \x in {0,0.1,0.2,0.3,0.4,0.5}
+%     \foreach \y in {0,0.1,0.2,0.3,0.4,0.5}{
+%             \draw [black]   (1,\x,\y) -- (1,\x+0.1,\y);
+%             \draw [black]   (1,\x,\y) -- (1,\x,\y+0.1);
+%             \draw (1,\x+0.05,\y+0.05) node [circle, fill=gray, inner sep=.02cm] () {};
+%         }
+
+%     \draw [black]   (1,0.6,0) -- (1,0.6,0.6);
+%     \draw [black]   (1,0,0.6) -- (1,0.6,0.6);
+
+%     \shade[ball color=red,opacity=0.5] (-1,0.2) circle (0.5cm);
+
+%     % Viewer ray
+%     \draw (2,0.35,0.35) node [circle, fill=black, inner sep=.02cm, label={[xshift=-0.1cm, yshift=0.1cm]eye}] () {};
+%     \draw[dashed,->] (2,0.35,0.35) -- (0,0.35,0.35) node[anchor=south]{};
+%     \draw (1,0.35,0.35) node [circle, fill=black, inner sep=.02cm] () {};
+%     \draw (0,0.35,0.35) node [circle, fill=black, inner sep=.02cm, label={$p$}] () {};
+
+
+% \end{tikzpicture}
+
+% Hemisphere integration
+\begin{tikzpicture}[scale=5,tdplot_main_coords]
+    %draw the main coordinate system axes
+    \draw[thick,->] (0,0,0) -- (0,0,1) node[anchor=south]{$n$};
+
+    \tdplotsetthetaplanecoords{\phivec}
+
+    \draw[dashed] (\radius,0,0) arc (0:360:\radius);
+    \shade[ball color=orange,opacity=0.2] (1cm,0) arc (0:-180:1cm and 5mm) arc (180:0:1cm and 1cm);
+    \draw (0, 0, 0) node [circle, fill=black, inner sep=.02cm] () {};
+\end{tikzpicture}
+
+\end{document}
