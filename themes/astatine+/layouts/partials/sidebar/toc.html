@@ -1,12 +1,11 @@
 {{ if (ne .Params.toc false) -}}
 <div>
-  <h3>{{ i18n "toc" }}</h3>
-  <div class="max-w-[10rem] 2xl:max-w-[20rem] truncate ...">
+  <div class="hidden xl:block xl:max-w-[10rem] 2xl:max-w-[20rem] truncate ...">
     <a href="#article-start">{{ .Title }}</a>
   </div>
-  {{ .TableOfContents | replaceRE "<li>" "<li class=\"list-none dashed max-w-[10rem] 2xl:max-w-[20rem] truncate ...\">- " | replaceRE "<ul>" "<ul class=\"my-1 pl-6\">" | safeHTML }}</li>
+  {{ .TableOfContents | replaceRE "<li>" "<li class=\"list-none dashed xl:max-w-[10rem] 2xl:max-w-[20rem] truncate ...\">" | replaceRE "<ul>" "<ul class=\"my-1 pl-4\">" | safeHTML }}</li>
 
-  <a href="#article-end" class="group">
+  <a href="#article-end" class="hidden xl:inline group">
     <svg class="fill-blue-800 dark:fill-blue-300 group-hover:fill-black dark:group-hover:fill-white w-10" xmlns="http://www.w3.org/2000/svg" height="48" viewBox="0 96 960 960" width="48"><path d="M480 711 240 471l43-43 197 198 197-197 43 43-240 239Z"/></svg>
   </a>
 </div>

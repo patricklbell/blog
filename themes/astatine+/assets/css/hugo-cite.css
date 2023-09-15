@@ -2,6 +2,11 @@
 /* Hugo-Cite.css
 /* ----------------------------------------------------------------------------- */
 
+.hugo-cite-intext {
+  display: inline-block;
+  word-break: keep-all;
+}
+
 .hugo-cite-group {
   display: inline-block;
   vertical-align: baseline; /*compensate for lower height */

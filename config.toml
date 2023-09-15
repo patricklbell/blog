@@ -20,6 +20,9 @@ paginate = 10
 pygmentsCodefences = true
 pygmentsStyle = "native"
 
+[markup.tableOfContents]
+endLevel = 5
+
 [sitemap]
 changefreq = "monthly"
 priority = 0.5

@@ -230,3 +230,13 @@
     cursor: zoom-in;
   }
 }
+
+.hiddentoc {
+  display: none;
+}
+.tocclicker:focus + .hiddentoc {
+  display: block;
+}
+input#toc-toggle:checked + label + div {
+  display: block;
+}

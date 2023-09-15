@@ -36,7 +36,18 @@
     {{ if ne .Params.toc false -}}
     <div class="hidden xl:block sticky top-10">
         <nav class="absolute left-[100%] pl-16 min-w-max" aria-label="Secondary navigation">
+            <h3>{{ i18n "toc" }}</h3>
             {{ partial "sidebar/toc.html" . }}
+        </nav>
+    </div>
+    <div class="block xl:hidden">
+        <nav class="flex flex-col" aria-label="Secondary navigation">
+            <input id="toc-toggle" class="ml-[-99999999px] h-0 my-0 py-0" type="checkbox" >
+            <label for="toc-toggle" class="tocclicker block cursor-pointer" tabindex="1"><h4 class="text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white text-right">{{ i18n "reveal-toc" }}</h4></label>
+    
+            <div class="hiddentoc">
+                {{ partial "sidebar/toc.html" . }}
+            </div>
         </nav>
     </div>
     {{ end -}}
