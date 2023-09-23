@@ -4,6 +4,9 @@ other = "Blog"
 [categories]
 other = "Catégories"
 
+[reveal-toc]
+other = "TOC"
+
 [tags]
 other = "Tags"
 

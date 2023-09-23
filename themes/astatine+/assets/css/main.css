@@ -167,7 +167,7 @@
     @apply mb-4;
     @apply ml-8;
   }
-  .article-content img {
+  figure img {
     @apply my-5;
     @apply mx-auto;
     @apply dark:brightness-[.8];
@@ -229,4 +229,14 @@
     z-index: 990;
     cursor: zoom-in;
   }
+}
+
+.hiddentoc {
+  display: none;
+}
+.tocclicker:focus + .hiddentoc {
+  display: block;
+}
+input#toc-toggle:checked + label + div {
+  display: block;
 }

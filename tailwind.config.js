@@ -5,7 +5,7 @@ module.exports = {
     "themes/astatine+/layouts/**/*.html",
     "themes/astatine+/content/**/*.md",
   ],
-  safelist: ["invisible"],
+  safelist: ["invisible", "pl-4"],
   theme: {
     container: {
       center: true,

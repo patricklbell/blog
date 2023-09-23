@@ -1,0 +1,39 @@
+\documentclass[tikz,convert={outfile=\jobname.svg}]{standalone}
+\usepackage{tikz}  
+\usepackage{tikz-3dplot} 
+\usepackage{amssymb}
+\usepackage{xifthen}
+
+\begin{document}
+
+\tdplotsetmaincoords{60}{110}
+
+%define polar coordinates for some vector
+%TODO: look into using 3d spherical coordinate system
+\pgfmathsetmacro{\radius}{1}
+\pgfmathsetmacro{\thetavec}{0}
+\pgfmathsetmacro{\phivec}{0}
+
+
+% Ray from eye to ball
+\begin{tikzpicture}[scale=5,tdplot_main_coords]
+    \foreach \x in {0,0.1,0.2,0.3,0.4,0.5}
+    \foreach \y in {0,0.1,0.2,0.3,0.4,0.5}{
+            \draw [black]   (1,\x,\y) -- (1,\x+0.1,\y);
+            \draw [black]   (1,\x,\y) -- (1,\x,\y+0.1);
+            \draw (1,\x+0.05,\y+0.05) node [circle, fill=gray, inner sep=.02cm] () {};
+        }
+
+    \draw [black]   (1,0.6,0) -- (1,0.6,0.6);
+    \draw [black]   (1,0,0.6) -- (1,0.6,0.6);
+
+    \shade[ball color=red,opacity=0.5] (-1,0.2) circle (0.5cm);
+
+    % Viewer ray
+    \draw (2,0.35,0.35) node [circle, fill=black, inner sep=.02cm, label={[xshift=-0.1cm, yshift=0.1cm]eye}] () {};
+    \draw[dashed,->] (2,0.35,0.35) -- (0,0.35,0.35) node[anchor=south]{};
+    \draw (1,0.35,0.35) node [circle, fill=black, inner sep=.02cm] () {};
+    \draw (0,0.35,0.35) node [circle, fill=black, inner sep=.02cm, label={$p$}] () {};
+\end{tikzpicture}
+
+\end{document}

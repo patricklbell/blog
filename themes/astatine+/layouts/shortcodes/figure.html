@@ -1,4 +1,5 @@
-<figure{{ with .Get "class" }} class="figure {{ . }}"{{ end }}>
+<div{{ with .Get "class" }} class="{{ . }}"{{ end }}>
+<figure class="figure">
     {{- if .Get "link" -}}
         <a href="{{ .Get "link" }}"{{ with .Get "target" }} target="{{ . }}"{{ end }}{{ with .Get "rel" }} rel="{{ . }}"{{ end }}>
     {{- end -}}
@@ -34,19 +35,21 @@
     </label>
 
     {{- if .Get "link" }}</a>{{ end -}}
-    {{- if or (or (.Get "title") (.Get "caption")) (.Get "attr") -}}
-        <figcaption>
-            {{ with (.Get "title") -}}
-                <h4>{{ . }}</h4>
-            {{- end -}}
-            {{- if or (.Get "caption") (.Get "attr") -}}<p>
-                {{- .Get "caption" | markdownify -}}
-                {{- with .Get "attrlink" }}
-                    <a href="{{ . }}">
-                {{- end -}}
-                {{- .Get "attr" | markdownify -}}
-                {{- if .Get "attrlink" }}</a>{{ end }}</p>
-            {{- end }}
-        </figcaption>
-    {{- end }}
 </figure>
+{{- if or (or (.Get "title") (.Get "caption")) (.Get "attr") -}}
+    {{/*  TODO Figure out how to get figcaption inside figure without equations breaking  */}}
+    <figcaption> 
+        {{ with (.Get "title") -}}
+            <h4>{{ . }}</h4>
+        {{- end -}}
+        {{- if or (.Get "caption") (.Get "attr") -}}<p>
+            {{- .Get "caption" | markdownify -}}
+            {{- with .Get "attrlink" }}
+                <a href="{{ . }}">
+            {{- end -}}
+            {{- .Get "attr" | markdownify -}}
+            {{- if .Get "attrlink" }}</a>{{ end }}</p>
+        {{- end }}
+    </figcaption>
+{{- end }}
+</div>
