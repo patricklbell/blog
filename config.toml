@@ -61,7 +61,6 @@ weight = -110
 
 # Site wide params and SEO
 [params]
-hostedKaTex = true
 blogrss = true
 
 # Site description. Individual pages can have descriptions too but if
@@ -70,9 +69,6 @@ description = """The homepage of Patrick Bell's blog"""
 # Author of the site
 authorName = "Patrick Bell"
 # Main image for the author. This will be the default image for SEO.
-
-# Indicate if you host Katex yourself. Defaults to using the CDN KaTex.
-# hostedKaTex = false
 
 [params.imgname]
 name = "favicon.png"

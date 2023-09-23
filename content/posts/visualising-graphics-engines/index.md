@@ -6,7 +6,6 @@ author: "Patrick Bell"
 slug: "visualising-graphics-engines"
 comments: true
 tags: [ "Graphics" ]
-katex: true
 caption: "A frame analysis of my own engine, showing the effects of each render 'pass'"
 img:
   name: "/posts/visualising-graphics-engines/header.png"
@@ -47,7 +46,7 @@ Antialiasing reduces the jagged edges created during the rasterization process. 
 
 ### Bloom
 {{<figure src="imgs/BLOOM.png" caption="*Additive blending with bloom texture*" >}}
-Bloom simulates the blurring that occurs when looking at bright lights. This effect is achieved by creating a blurred version of the screen texture and blending additively ($ color_{bloom} = color_{screen} + color_{blurred} $). I use the classic progressive downsampling method after I foun it less expensive than a Gaussian blur with no noticeable quality loss.
+Bloom simulates the blurring that occurs when looking at bright lights. This effect is achieved by creating a blurred version of the screen texture and blending additively ({{< latex >}}$\text{color}_{\text{bloom}} = \text{color}_{\text{screen}} + \text{color}_{\text{blurred}}${{< /latex >}}). I use the classic progressive downsampling method after I foun it less expensive than a Gaussian blur with no noticeable quality loss.
 
 ### Ambient Occlusion
 {{<figure src="imgs/SSAO.png" caption="*Screen space ambient occlusion, very subtle due to large error*" >}}

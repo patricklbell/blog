@@ -4,7 +4,6 @@ title: "Modifying Spline Algorithms to Draw Proteins with WebAssembly"
 author: "Patrick Bell"
 slug: "visualising-proteins"
 tags: [ "Graphics", "Mathematics"]
-katex: true
 comments: true
 caption: "An overview of the mathematics and programming involved in rendering Ribbon Diagrams"
 img:
@@ -19,7 +18,7 @@ Proteins are the building blocks of our cells and allow for the incredibly compl
 {{<figure src="imgs/IgG.png" link="https://www.rcsb.org/structure/1igt" caption="*The IgG2 antibody of a mouse, left are the input atoms, right is the ribbon diagram*" >}}
 
 ## Reading Protein Files
-Before we can create our diagrams we first need the atoms which make up our protein, thankfully there is a well established (and documented!) format (PDB) along with a database of proteins called the [Worldwide Protein Data Bank](https://www.wwpdb.org/). While the format is a bit old, it really isn't too bad, [my reader (See loadPdbFile)](https://github.com/patricklbell/chemical_visualizer/blob/500440aff3c2200fac61c7097174478f0ba4a6a2/src/loader.cpp) came out at ~300 lines of mutant $C$ and $C\texttt{++}$. Or you could use one of many [libraries](https://mmcif.wwpdb.org/docs/software-resources.html) suggested by the PDB people. Either way you now have your atoms and bonds loaded into a nice and pretty data structure. For my online viewer, reading is quick enough that I don't even bother caching anything, the PDB is processed every page load although this could certainly be improved. On to rendering!
+Before we can create our diagrams we first need the atoms which make up our protein, thankfully there is a well established (and documented!) format (PDB) along with a database of proteins called the [Worldwide Protein Data Bank](https://www.wwpdb.org/). While the format is a bit old, it really isn't too bad, [my reader (See loadPdbFile)](https://github.com/patricklbell/chemical_visualizer/blob/500440aff3c2200fac61c7097174478f0ba4a6a2/src/loader.cpp) came out at ~300 lines of {{< latex >}}$C\texttt{++}${{< /latex >}}. Or you could use one of many [libraries](https://mmcif.wwpdb.org/docs/software-resources.html) suggested by the PDB people. Either way you now have your atoms and bonds loaded into a nice and pretty data structure. For my online viewer, reading is quick enough that I don't even bother caching anything, the PDB is processed every page load although this could certainly be improved. On to rendering!
 
 ## A Brief Word On Rendering
 To draw our proteins, like pretty much all 3D graphics, we need to form meshes which the GPU can understand. These meshes consist of triangles, each consisting of three vertices in 3D space which together enclose the ribbon of a protein, for correct lighting we also need a normal for each vertex. I'm going to skip over the details of my renderer, ultimately you could draw the meshes with any 3D program you liked or even export 3D models.
@@ -32,25 +31,25 @@ Creating a ribbon consists of two steps, fitting a spline to the alpha-carbons a
 ### The Spline Algorithm
 Before creating the spline I first average adjacent alpha-carbon positions to create a smoother look, we then need to choose tangents (parallel to tube) for each point. You could use more chemically accurate tangents but I used a Cardinal interpolation to achieved a smoother look. The Cardinal method uses a dampened vector between adjacent position, so that the tangent is given by
 
-\\[
+```latex
 \Large{\overrightarrow{T_k} = (1-c) (\overrightarrow{P_{k+1}} - \overrightarrow{P_{k-1}})}.
-\\]
+```
 {{<figure src="imgs/protein-cardinal.png" link="https://www.rcsb.org/structure/1bzv" caption="*Averaged points and their tangents (c = 0.25)*">}}
 
 Now we need to actually generate the spline, it's important that our spline not only smoothly interpolates position but also tangent, normals and binormals. That is, the spline's first and second derivatives must be continuous. Specifying the tangents at each point ensures that adjacent splines have matching first derivatives but not second derivates. If we want we could use a quadratic spline, but we sacrifice smoothness and I found that this produces a poor result. Rather, I discard the true normal and calculate the normal from the current tangent and previous point's normal. For smoothness set the endpoint second derivative to zero, as in the natural Hermite Cubic. This ensures continuity, since the continuity of the tangents are guaranteed and simplifies calculation. If the previous normal is invalid I set the binormal to the perpendicular component, relative to the tangent, of the average of the endpoints' binormals, but I'm sure there are better choices. 
 
-The position $\overrightarrow{P}$, where $t \in [0, 1]$, is given by
-\\[
+The position {{< latex >}}$\overrightarrow{P}\;${{< /latex >}}, where {{< latex >}}$t \in [0, 1]${{< /latex >}}, is given by
+```latex
 \overrightarrow{P}(t) = (2t^3 - 3t^2 + 1)\overrightarrow{P_{k}} + (-2t^3 + 3t^2)\overrightarrow{P_{k+1}} + (t^3 - 2t^2 + t)\overrightarrow{T_{k}} + (t^3 - t^2)\overrightarrow{T_{k+1}}.
-\\]
-And the tangent $\overrightarrow{T}$ is
-\\[
+```
+And the tangent {{< latex >}}$\overrightarrow{T}\;${{< /latex >}} is
+```latex
 \overrightarrow{T}(t) = (6t^2 - 6t)\overrightarrow{P_{k}} + (-6t^2 + 6t)\overrightarrow{P_{k+1}} + (3t^2 - 4t + 1)\overrightarrow{T_{k}} + (3t^2 - 2t)\overrightarrow{T_{k+1}}.
-\\]
+```
 The tangent is then be normalized and used to calculate the binormal and normal 
-\\[
-\overrightarrow{B}(t) = T(t) \times N(t - \Delta),\\quad \overrightarrow{N}(t) = B(t) \times T(t).
-\\]
+```latex
+\overrightarrow{B}(t) = T(t) \times N(t - \Delta),\qquad \overrightarrow{N}(t) = B(t) \times T(t).
+```
 
 Or in [code](https://github.com/patricklbell/chemical_visualizer/blob/500440aff3c2200fac61c7097174478f0ba4a6a2/src/utilities.cpp) if you prefer (simplified to remove profile blending and doubled normals) 
 

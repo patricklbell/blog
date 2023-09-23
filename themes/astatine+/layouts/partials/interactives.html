@@ -1,0 +1,149 @@
+<canvas id="c" class="absolute left-0 top-0 w-full h-full -z-10"></canvas>
+<script type="module">
+  import * as THREE from "three";
+  import { GUI } from "three/addons/libs/lil-gui.module.min.js";
+  import { TrackballControls } from "three/addons/controls/TrackballControls.js";
+  import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
+  import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+  import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
+  import { OutlinePass } from "three/addons/postprocessing/OutlinePass.js";
+  import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
+  import { FXAAShader } from "three/addons/shaders/FXAAShader.js";
+
+  if (INTERACTIVES.length > 0) {
+    let canvas,
+      renderer,
+      scenes = [];
+    const pixelRatio = window.devicePixelRatio * 2.0;
+    const effectFXAA = new ShaderPass(FXAAShader);
+
+    function init() {
+      canvas = document.getElementById("c");
+      renderer = new THREE.WebGLRenderer({
+        canvas: canvas,
+        antialias: true,
+        alpha: true,
+      });
+      renderer.setPixelRatio(pixelRatio);
+
+      INTERACTIVES.forEach((interactive) => {
+        const scene = new THREE.Scene();
+
+        // the element that represents the area we want to render the scene
+        scene.userData.element = document.getElementById(
+          `canvas-${interactive?.id}`
+        );
+        document
+          .getElementById(`canvas-${interactive?.id}`)
+          .classList.remove("hidden");
+        document
+          .getElementById(`img-${interactive?.id}`)
+          .classList.add("hidden");
+
+        const control_elem = document.getElementById(
+          `controls-${interactive?.id}`
+        );
+        let gui = undefined;
+        if (control_elem) {
+          control_elem.classList.remove("hidden");
+          gui = new GUI({ container: control_elem });
+          {
+            {
+              /*  gui.domElement.style.setProperty("--background-color", "#ff0000");
+              gui.domElement.style.setProperty(
+                "--title-background-color",
+                "#ff0000"
+              );  */
+            }
+          }
+        }
+
+        // initialize scene
+        interactive?.init({ THREE, GUI, TrackballControls }, scene, gui);
+
+        const composer = new EffectComposer(renderer);
+        var renderPass = new RenderPass(scene, scene.userData.camera);
+
+        composer.addPass(renderPass);
+        composer.addPass(effectFXAA);
+
+        scene.userData.composer = composer;
+
+        scenes.push(scene);
+      });
+    }
+
+    function updateSize() {
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+
+      if (canvas.width !== width || canvas.height !== height) {
+        renderer.setSize(width, height, false);
+      }
+    }
+
+    function animate() {
+      update_and_render();
+      requestAnimationFrame(animate);
+    }
+
+    function update_and_render() {
+      updateSize();
+
+      canvas.style.transform = `translateY(${window.scrollY}px)`;
+
+      renderer.setClearColor(0xffffff, 0);
+      renderer.setScissorTest(false);
+      renderer.clear();
+
+      renderer.setScissorTest(true);
+      scenes.forEach((scene, i) => {
+        // get the element that is a place holder for where we want to
+        // draw the scene
+        const element = scene.userData.element;
+
+        // get its position relative to the page's viewport
+        const rect = element.getBoundingClientRect();
+
+        // check if it's offscreen. If so skip it
+        if (
+          rect.bottom < 0 ||
+          rect.top > renderer.domElement.clientHeight ||
+          rect.right < 0 ||
+          rect.left > renderer.domElement.clientWidth
+        ) {
+          return; // it's off screen
+        }
+        scene.userData.update(scene);
+
+        // set the viewport
+        const width = rect.right - rect.left;
+        const height = rect.bottom - rect.top;
+        const left = rect.left;
+        const bottom = renderer.domElement.clientHeight - rect.bottom;
+
+        renderer.setViewport(left, bottom, width, height);
+        renderer.setScissor(left, bottom, width, height);
+
+        const camera = scene.userData.camera;
+        camera.aspect = width / height;
+        camera.updateProjectionMatrix();
+
+        {
+          {
+            /*  renderer.render(scene, camera);  */
+          }
+        }
+
+        scene.userData.composer.setSize(width, height);
+
+        effectFXAA.uniforms["resolution"].value.x = 1 / (width * pixelRatio);
+        effectFXAA.uniforms["resolution"].value.y = 1 / (height * pixelRatio);
+        scene.userData.composer.render();
+      });
+    }
+
+    init();
+    animate();
+  }
+</script>

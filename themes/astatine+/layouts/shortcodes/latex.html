@@ -1,0 +1,47 @@
+{{- /* Initialize. */}}
+{{- $apiEntryPoint := "https://math.vercel.app" -}}
+{{- $color := .Get "color" | default "" -}}
+{{- $center := .Get "center" | default false -}}
+{{- $latex := trim .Inner "\n\r" -}}
+
+{{- /* Determine display mode. */}}
+{{- $displayMode := true -}}
+{{- if or (strings.HasPrefix $latex `$$`) (strings.HasPrefix $latex `\[`) -}}
+  {{- $displayMode = true -}}
+{{- else if or (strings.HasPrefix $latex `$`) (strings.HasPrefix $latex `\(`) -}}
+  {{- $displayMode = false -}}
+{{- end -}}
+
+{{- /* Strip display mode indicators. */}}
+{{- $latex = trim $latex `$` -}}
+{{- $latex = $latex | strings.TrimPrefix `\[` -}}
+{{- $latex = $latex | strings.TrimPrefix `\(` -}}
+{{- $latex = $latex | strings.TrimSuffix `\]` -}}
+{{- $latex = $latex | strings.TrimSuffix `\)` -}}
+
+{{- /* Create query string. */}}
+{{- $mode := "inline" -}}
+{{- if $displayMode -}}
+  {{- $mode = "from" -}}
+{{- end -}}
+{{- $qs := querify $mode $latex "color" $color -}}
+
+{{- /* Get SVG. */}}
+{{- $url := printf "%s?%s" $apiEntryPoint $qs -}}
+{{- with resources.GetRemote $url -}}
+  {{- with .Err  -}}
+    {{- errorf "%s" . -}}
+  {{- else -}}
+    {{- if $displayMode -}}
+      <div class="dark:invert flex flex-col items-center"><img src="{{ .RelPermalink -}}" alt=""></div>
+    {{- else -}}
+      {{- if $center -}}
+        <span class="dark:invert inline-block align-middle"><img src="{{ .RelPermalink -}}" alt="{{$latex}}"></span>
+      {{- else -}}
+        <span class="dark:invert inline-block align-baseline"><img src="{{ .RelPermalink -}}" alt="{{$latex}}"></span>
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+{{- else  -}}
+  {{- errorf "Unable to convert LaTex to SVG. See %s" $.Position -}}
+{{- end -}}

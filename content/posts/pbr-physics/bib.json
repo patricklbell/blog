@@ -179,6 +179,29 @@
     "volume": "25"
   },
   {
+    "DOI": "10.1109/TAP.1967.1138991",
+    "author": [
+      {
+        "family": "Smith",
+        "given": "B."
+      }
+    ],
+    "container-title": "IEEE Transactions on Antennas and Propagation",
+    "id": "Smith1967",
+    "issue": "5",
+    "issued": {
+      "date-parts": [
+        [
+          1967
+        ]
+      ]
+    },
+    "page": "668-671",
+    "title": "Geometrical shadowing of a random rough surface",
+    "type": "article-journal",
+    "volume": "15"
+  },
+  {
     "URL": "https://www.gdcvault.com/play/1024478/PBR-Diffuse-Lighting-for-GGX",
     "author": [
       {
