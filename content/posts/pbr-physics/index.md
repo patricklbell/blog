@@ -12,25 +12,25 @@ img:
   alt: "Microsurface of Gypsum, coloured SEM, see post for credits"
 ---
 
-Physically based rendering (PBR) is a general term for techniques in 3D graphics that approximate physical laws. This is fairly arbitrary, but the term PBR has come to mean techniques which aim for realistic rendering of real world materials. The PBR approach to materials developed by Disney in 2012{{< cite "Burley2012" >}} still forms the basis of real-time realistic rendering. This post explains the physical models and mathematics behind PBR. My renderer uses a similar PBR system which can be found in the [PBR shader](https://github.com/patricklbell/3d_engine/blob/main/data/shaders/lib/pbr.glsl).
+Physically based rendering (PBR) is a general term for techniques in 3D graphics that approximate physical laws. The term PBR has come to mean techniques which aim for realistic rendering of real world materials. The PBR approach developed by Disney in 2012{{< cite "Burley2012" >}} still forms the basis of real-time rendering of realistic materials. This post explains the physical models and mathematics behind PBR. My renderer uses a similar PBR system which can be found in the [PBR shader](https://github.com/patricklbell/3d_engine/blob/main/data/shaders/lib/pbr.glsl).
 
 {{< interactive src="interactives/pbr.js" imgsrc="interactives/pbr-alt.png" caption="*A dielectric material lit by a directional light following a PBR model.*" controls=true >}}
 
 ## Principles
 To realistically render materials in a consistent manner some important laws should be obeyed.
  - *Conservation of energy*, the energy of light hitting a surface is less than or equal to the energy reflected.
- - *Law of reflection*, the incident polar angle equals the reflected polar angle for light reflecting off a mirror.
- - *Fresnel Equations,* the proportion of light reflected or transmitted by a surface follows the Fresnel equations.
+ - *Law of reflection*, the incident angle equals the reflected angle for light reflecting off a mirror.
+ - *Fresnel Equations,* the proportion of light reflected or transmitted when hitting a surface follows the Fresnel equations.
 
-Accurately simulating all the behaviors of light is infeasible for realtime graphics, simplifying assumptions about light are made in PBR including:
+Accurately simulating all the behaviors of light is infeasible for real-time graphics, simplifying assumptions about light are made in PBR including:
 - Light is always unpolarized.
-- Light's wave properties can be ignored (eg. diffraction, interference) most of the time.
-- Light follows straight lines, it should act the same going from the viewer to the source as vice versa, called [**Helmholtz reciprocity**](https://en.wikipedia.org/wiki/Helmholtz_reciprocity).
+- Light's wave properties can be ignored (eg. diffraction, interference) and treated as rays, this is called geometry optics.
+- Light would act the same going from a light source to viewer as vice versa, called [**Helmholtz reciprocity**](https://en.wikipedia.org/wiki/Helmholtz_reciprocity).
 
-These assumptions rarely cause a large error but certain situations or materials can exaggerate errors. For example, when multiple reflections occur between surface accounting for polarization can visibly change the result{{<cite "Wilkie2012">}}.
+These assumptions rarely cause problems which are visible but certain situations or materials can exaggerate errors. For example, when multiple reflections occur between surfaces, accounting for polarization can visibly change the result{{<cite "Wilkie2012">}}.
 
 ## The Model
-For each pixel on the screen imagine a ray which travels from a virtual eye, through a pixel's, and hits an object in the world. If the object is opaque (ignoring atmospheric effects) the colour of that pixel is determined by the light the object scatters from that point towards the pixel. PBR is about calculating the "intensity" of this light.
+For each pixel on the screen imagine a ray which travels from a virtual eye and through the pixel. The ray will eventually hit an object. If the object is opaque (ignoring atmospheric effects) the colour of that pixel is determined by the light the object scatters from that point towards the pixel. PBR is about calculating the "intensity" of this light.
 
 {{<figure src="asy/intersection.svg" caption="*The model.*" width="80%">}}
 
@@ -38,9 +38,9 @@ For each pixel on the screen imagine a ray which travels from a virtual eye, thr
 Intensity is an ambiguous term, radiance and irradiance are two physical units of light which can be mapped to a pixel's brightness. Radiance and irradiance technically have the same physical units of watts per square metre ({{< latex center=true >}}$\text{W}/\text{m}^2${{< /latex >}}) but understanding their differences is key to ensuring PBR conserves energy.
 
 #### Irradiance
-{{<figure src="asy/irradiance.png" caption="*Irradiance is the proportional to the amount flux through or onto an area.*" width="80%">}}
+{{<figure src="asy/irradiance.png" caption="*Irradiance is the relative flux through or onto an area.*" width="80%">}}
 
-Imagine a point emitting light in every direction with a total radiant flux of {{< latex >}}$\Phi${{< /latex >}} watts (joules per second). If we stand farther away from the light source, it's flux is spread over a larger area. Imagine an area {{< latex >}}$dA${{< /latex >}}, in this case it happens to lie on the sphere's surface but it could be anywhere, some amount of flux {{< latex >}}$d\Phi${{< /latex >}} from the light source passes through this area. If we moved the area further from the light source, we see it as dimmer. Even if we increased the area and actually captured more flux, it is still dimmer. This means we actually care about the amount of flux relative to the area {{< latex >}}$dA${{< /latex >}}. The irradiance {{< latex >}}$E${{< /latex >}} is then
+Imagine a point emitting light in every direction with a total radiant flux of {{< latex >}}$\Phi${{< /latex >}} watts (joules per second). If we stand farther away from the light source, the flux is spread over a larger area. Imagine an area {{< latex >}}$dA${{< /latex >}}, in this case it happens to lie on the sphere's surface but it could be anywhere, some amount of flux {{< latex >}}$d\Phi${{< /latex >}} from the light source passes through this area. If we moved the area farther from the light source, the area appears "dim". If we increased the area and captured more flux, the area would still be "dim". This means the intensity we care about is an amount of flux **relative** to the area {{< latex >}}$dA${{< /latex >}} it passes through. The irradiance {{< latex >}}$E${{< /latex >}} is then
 
 ```latex
   E = \frac{d\Phi}{dA}.
@@ -51,7 +51,7 @@ The notation {{< latex >}}$dA${{< /latex >}} indicates that the area is very sma
 #### Radiance
 {{<figure src="asy/radiance.png" caption="*Radiance is the flux from a certain direction onto or reflected from an area.*" width="80%">}}
 
-Irradiance considers flux coming from every direction, but in rendering we want to know the light from a certain direction. Radiance is the directional form of irradiance. The problem is, if we looked at the flux from precisely one direction it would always be zero (similar to how the probability of a dart hitting a point is zero at every point). To resolve this, imagine a unit sphere surrounding our area with flux coming from the direction of a small "patch" {{< latex >}}$d\omega${{< /latex >}} on the surface. Now that we have an area the flux can be non-zero. The patch is analogous to the arc off a circle, the length of which is measured in radians, the patch's area is measured in [steradians](https://en.wikipedia.org/wiki/Steradian) instead.
+Irradiance considers flux coming from every direction, but in rendering we want to know the light from a certain direction. Radiance is the directional form of irradiance. The problem is, if we looked at the flux from precisely one direction it would always be zero (similar to how the probability of a dart hitting a point is zero at every point). To resolve this, imagine a unit sphere surrounding our area with flux coming from the direction of a small "patch" {{< latex >}}$d\omega${{< /latex >}} on the surface. Now that we have an area the flux can be non-zero. The patch is analogous to the arc of a circle. The length of an arc is measured in radians, the patch's area is measured in [steradians](https://en.wikipedia.org/wiki/Steradian) instead.
 
 {{<figure src="asy/cosrule.png" caption="*Projecting the area {{< latex >}}$dA${{< /latex >}} so it is perpendicular to the flux.*" width="80%">}}
 
@@ -65,11 +65,11 @@ If the area {{< latex >}}$dA${{< /latex >}} is not perpendicular to the directio
         \end{aligned}
     \end{equation*}
 ```
-Just like an arc length is {{< latex center=true >}}$r \theta${{< /latex >}}, the area of our patch is the projected area {{< latex center=true >}}$dA_{\perp}${{< /latex >}} multiplied by {{< latex >}}$d\omega${{< /latex >}} which we divide the incoming flux over. The notation {{< latex >}}$d${{< /latex >}} indicates a small quantity, in practice the area {{< latex >}}$dA${{< /latex >}} becomes a point (eg. {{< latex >}}$p${{< /latex >}}) and the solid angle becomes a point in the direction of a light. 
+Just like an arc length is {{< latex >}}$r \theta${{< /latex >}}, the area of our patch is the projected area {{< latex center=true >}}$dA_{\perp}${{< /latex >}} multiplied by {{< latex >}}$d\omega${{< /latex >}} which we divide the incoming flux over. The notation {{< latex >}}$d${{< /latex >}} again indicates a small quantity, in practice the area {{< latex >}}$dA${{< /latex >}} becomes a point (eg. {{< latex center=true >}}$p${{< /latex >}}) and the solid angle becomes a ray. 
 
-The reason why radiance is defined for a patch on a **sphere** is that it makes the radiance of a light source independent of the distance from the light source. As distance increases the flux decreases following the inverse square law {{< latex >}}$\propto r^2${{< /latex >}}, but the solid angle occupied by the light source also decreases {{< latex >}}$\propto r^2${{< /latex >}}, cancelling out. 
+The reason why radiance is defined for a patch on a **sphere** is that it makes the radiance of a light source independent of the distance from the light source. This can be illustrating by considering the following. As the distance from a light source increases, the flux decreases following the inverse square law {{< latex >}}$\propto r^2${{< /latex >}}, but the solid angle occupied by the light source also decreases {{< latex >}}$\propto r^2${{< /latex >}}, cancelling out. 
 
-We can find irradiance onto an area by adding radiance from all incident directions {{< latex >}}$\Omega${{< /latex >}}[^2],
+We can find irradiance onto an area by adding radiances from all incident directions, defined to be {{< latex >}}$\Omega${{< /latex >}}[^2],
 ```latex
   E = \int_{\Omega} L(\omega) \text{cos}\theta\; d\omega = \int_{\phi=0}^{2\pi} \int_{\theta=0}^{\pi/2} L(\omega)\; \text{cos}\theta\text{sin}\theta \; d\theta d\phi
 ```
@@ -82,13 +82,13 @@ In this post we are going to assume that the radiance {{< latex >}}$L${{< /latex
 ### Colour
 {{<figure src="imgs/spd.png" caption="*Spectral power distribution of sunlight.*" width="50%">}}
 
-The radiances we deal with will vary with the wavelength (i.e. colour) of the light. We could calculate the radiance for every visible wavelength, called a spectral power distribution (SPD), but this would be very computationally expensive. Luckily, we can approximate the perceived SPD by combining red, green and blue (RGB) radiances. For this reason, treat the radiances as an RGB vector of radiances where relevant[^1].
+The radiances we deal with will vary with the wavelength (i.e. colour) of the light. We could calculate the radiance for every visible wavelength, called a spectral power distribution (SPD), but this would be very computationally expensive. Luckily, we can approximate the perceived SPD by combining red, green and blue (RGB) radiances. For this reason, treat radiance and any spectral quantities as RGB vectors where relevant[^1].
 
-[^1]: Alternatively, each function could be defined as spectral with an extra wavelength parameter {{< latex >}}$\lambda${{< /latex >}}.
-[^2]: The second part applies relies on {{< latex center=true >}}$d\omega = sin\theta d\theta\, d\phi${{< /latex >}}, because both quantities are the same surface area element on the unit sphere.
+[^1]: If you prefer, treat each function which is spectral as having an extra wavelength parameter {{< latex >}}$\lambda${{< /latex >}}.
+[^2]: Convert the surface element from a solid angle to polar form, {{< latex center=true >}}$d\omega = sin\theta d\theta\, d\phi${{< /latex >}}.
 
 ### Rendering Equation
-Returning to our model, the light the object scatters towards our eye is either reflected from the surroundings or emitted by the object. Since we only care about flux **towards** the eye, the pixel colour is determined by the **radiance**
+Returning to our model, We only care about flux directed towards the pixel (light from other directions is not focused by a camera's lens or the cornea) from the object. The pixel's colour is determined by the radiance towards the pixel from the point on the object. The light the object scatters towards our eye is either reflected from the surroundings or emitted by the object. 
 ```latex
     \begin{equation*}
         \begin{aligned}
@@ -101,7 +101,7 @@ Returning to our model, the light the object scatters towards our eye is either 
         \end{aligned}
     \end{equation*}
 ```
-which is called the [rendering equation](https://en.wikipedia.org/wiki/Rendering_equation). {{< latex center=true >}}$\pmb{L_e}${{< /latex >}} can be a constant or sampled from a texture. {{< latex center=true >}}$\pmb{L_r}${{< /latex >}} depends on how all the lights of the scene interact with the material of the object at {{< latex >}}$\pmb{p}${{< /latex >}}. 
+This is called the [rendering equation](https://en.wikipedia.org/wiki/Rendering_equation). {{< latex center=true >}}$\pmb{L_e}${{< /latex >}} can be a constant or sampled from a texture. {{< latex center=true >}}$\pmb{L_r}${{< /latex >}} depends on how all the lights of the scene interact with the material of the object at {{< latex >}}$\pmb{p}${{< /latex >}}. 
 
 As mentioned earlier, the point {{< latex >}}$\pmb{p}${{< /latex >}} is analogous to a small planar area {{< latex >}}$dA${{< /latex >}} with normal {{< latex >}}$\pmb{n}${{< /latex >}}. Light which reflects off the surface can not come from behind the plane, so we consider only incident radiances directed from a hemisphere {{< latex center=true >}}$\Omega${{< /latex >}} lying on the surface. This assumption preclude large subsurface scattering (light hitting another point on the surface and scattering through the surface and emerging outside {{< latex >}}$dA${{< /latex >}}) which are significant in materials such as skin and water.
 
