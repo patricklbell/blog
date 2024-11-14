@@ -1,37 +1,29 @@
 {
-  "name": "blog",
-  "version": "1.0.0",
-  "description": "",
+  "name": "patricklbell",
+  "version": "0.1.0",
+  "private": true,
   "scripts": {
-    "dev:hugo": "npm exec hugo server",
-    "dev:tailwind": "tailwind build -i themes/astatine+/assets/css/main.css -o themes/astatine+/assets/css/style.css --watch",
-    "build:tailwind": "tailwind build -i themes/astatine+/assets/css/main.css -o themes/astatine+/assets/css/style.css",
-    "build:hugo": "npx hugo --gc --minify",
-    "dev": "concurrently \"npm run dev:tailwind\" \"npm run dev:hugo\"",
-    "build": "npm run build:tailwind && npm run build:hugo",
-    "clean": "shx rm -rf public resources"
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "format": "next lint --fix",
+    "prepare": "husky"
   },
   "dependencies": {
-    "hugo-bin": "^0.102.0",
-    "postcss": "^8.4.18",
-    "postcss-cli": "^10.0.0",
-    "tailwind-watch": "^0.0.6",
-    "tailwindcss": "^3.2.1"
+    "next": "15.0.3",
+    "react": "19.0.0-rc-66855b96-20241106",
+    "react-dom": "19.0.0-rc-66855b96-20241106"
   },
   "devDependencies": {
-    "concurrently": "^8.0.1",
-    "shx": "^0.3.4"
-  },
-  "otherDependencies": {
-    "hugo": "0.101.0"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/patricklbell/blog.git"
-  },
-  "author": "Patrick Bell",
-  "bugs": {
-    "url": "https://github.com/patricklbell/blog/issues"
-  },
-  "homepage": "https://patricklbell.xyz"
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "eslint": "^8",
+    "eslint-config-next": "15.0.3",
+    "husky": "^9.1.6",
+    "postcss": "^8",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5"
+  }
 }

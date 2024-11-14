@@ -22,8 +22,8 @@ jobs:
       - name: Archive build artifacts
         uses: actions/upload-artifact@v1
         with:
-          name: public
-          path: public
+          name: dist
+          path: dist
 
   deploy:
     runs-on: ubuntu-latest
