@@ -1,0 +1,14 @@
+To derive an energy conserving Lambertian BRDF,
+```math
+    \begin{align*}
+        \rho &= \int_{\Omega} f_r \cdot (\omega_r \cdot \pmb{n}) d\omega_r \\
+             &= \int_{\phi=0}^{2\pi} \int_{\theta=0}^{\pi/2} f_r \cdot \text{cos}\theta \text{sin}\theta d\theta \;d\phi \\
+             &= f_r \int_{\phi=0}^{2\pi} \left( \int_{\theta=0}^{\pi/2} \frac{1}{2} \text{sin}2\theta d\theta \right) \;d\phi \\
+             &= \frac{1}{2} f_r \int_{\phi=0}^{2\pi} \;d\phi \\
+             &= \pi f_r.
+    \end{align*}
+```
+Rearranging for $$f_r$$,
+```math
+    f_r = \frac{\rho}{\pi}
+```
