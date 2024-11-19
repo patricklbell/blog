@@ -1,0 +1,41 @@
+To explain the 4 in the PBR BRDF we need to determine how $$\omega_r$$ changes relative to $$\omega_m$$ for a specular microfacet.
+
+The delta function enforces $$\pmb{h} = \pmb{m}$$, so $${d\omega_m = d\omega_h}$$. 
+
+To make the problem simpler we can swap what's changing, that is, for some area on the unit sphere $$d\omega_r$$ at $$\pmb{r}$$, what is the corresponding area $$d\omega_h$$ at $$\pmb{h}$$, keeping $$\pmb{i}$$ as a constant vector?
+
+<Image src={`${props.assetsUrl}imgs/pbr-4.svg`}>
+  Illustration of geometric argument to explain the 4 in PBR.
+</Image>
+
+We need to transforms the area $$d\omega_r$$ onto the corresponding area $$d\omega_h$$ following the definition of the halfway vector:
+
+```math
+  \pmb{h} = \frac{\pmb{i}+\pmb{r}}{|\pmb{i}+\pmb{r}|}
+```
+
+So our area at $$d\omega_r$$ needs to be shifted from  $$\pmb{r}$$ to $$\pmb{i} + \pmb{r}$$, then rescaled onto the unit sphere to become $$d\omega_h$$. 
+
+Shifting $$d\omega_r$$ to $$\pmb{i}+\pmb{r}$$ doesn't change the area, but the area no longer lies perpendicular to a sphere, so it needs to be projected onto the sphere with radius $$|\pmb{i}+\pmb{r}|$$. $$d\omega_r$$'s normal is $$\pmb{r}$$ and the outer sphere's normal is $$\pmb{h}$$ at $$\pmb{i}+\pmb{r}$$, so the projected area is $$dA_{\text{proj}} = (\pmb{r} \cdot \pmb{h}) d\omega_r$$. 
+
+We now need to rescale our area $$dA$$ from the outer sphere onto the unit sphere. The proportion of $$dA$$ to the outer sphere's surface area is equivalent to the proportion of $$d\omega_h$$ to the unit sphere's surface area,
+
+```math
+  \frac{dA_{\text{proj}}}{4\pi |\pmb{i}+\pmb{r}|^2} \equiv \frac{d\omega_h}{4\pi}.
+```
+So substituting for $$dA$$ and rearranging
+```math
+  \frac{d\omega_r}{d\omega_m} = \frac{d\omega_r}{d\omega_h} = \frac{|\pmb{i}+\pmb{r}|^2}{\pmb{r} \cdot \pmb{h}}.
+```
+We need to find $$|\pmb{i}+\pmb{r}|$$, one method is to note that $$\pmb{i}+\pmb{r}$$ is parallel to $$\pmb{h}$$ so 
+```math
+  |\pmb{i}+\pmb{r}| = \pmb{h} \cdot (\pmb{i}+\pmb{r}) = \pmb{h}\cdot\pmb{i} + \pmb{h}\cdot\pmb{r} = 2 \pmb{r}\cdot\pmb{h}
+```
+Or equivalently, if $$\theta$$ is the angle between $$\pmb{h}$$ and $$\pmb{r}$$, then $$2\theta$$ is the angle between $$\pmb{i}$$ and $$\pmb{r}$$ so
+```math
+  |\pmb{i}+\pmb{r}|^2 = |\pmb{i}|^2 + |\pmb{r}|^2 + 2 (\pmb{i} \cdot \pmb{r}) = 2 + 2 \text{cos}(2\theta) = 4 \text{cos}^2 \theta
+```
+Substituting $$|\pmb{i}+\pmb{r}|^2$$,
+```math
+  \frac{d\omega_r}{d\omega_m} = \frac{4 (\pmb{r}\cdot\pmb{h})^2}{\pmb{r}\cdot\pmb{h}} = 4 (\pmb{r}\cdot\pmb{h}).
+```

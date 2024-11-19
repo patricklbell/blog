@@ -1,9 +1,0 @@
-{{ define "main" }}
-  <div class="list">
-    <!-- <h2 class="list-title">{{ .Title }}</h2> -->
-    {{ range $i,$p := .Pages }}
-        {{ .Scratch.Set "oddeven" (modBool $i 2) }}
-        {{ partial "list-item.html" . }}
-    {{ end }}
-  </div>
-{{ end }}
