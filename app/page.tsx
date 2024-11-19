@@ -38,13 +38,13 @@ export default async function Home() {
                 <div className="w-full grid grid-cols-12 lg:grid-rows-2 gap-3">
                     {/* @note tailwind is a bit annoying here since we can't use lg:col-span-8 directly because it conflcits with col-start */}
                     <div className="lg:col-end-9 lg:row-span-2 col-start-1 col-end-13">
-                        <ArticleCard className="aspect-video h-full" slug={newsPages[0]} />
+                        <ArticleCard className="md:aspect-video h-full" slug={newsPages[0]} />
                     </div>
                     <div className="lg:row-start-1 lg:row-end-1 lg:col-start-9 lg:col-end-13 md:col-start-1 md:col-end-7 md:row-start-2 col-start-1 col-end-13">
-                        <ArticleCard className="aspect-video" slug={newsPages[1]} />
+                        <ArticleCard className="md:aspect-video" slug={newsPages[1]} />
                     </div>
                     <div className="lg:row-start-2 lg:row-end-2 lg:col-start-9 lg:col-end-13 md:col-start-7 md:col-end-13 md:row-start-2 col-start-1 col-end-13">
-                        <ArticleCard className="aspect-video" slug={newsPages[2]} />
+                        <ArticleCard className="md:aspect-video" slug={newsPages[2]} />
                     </div>
                 </div>
             </section>
@@ -56,7 +56,7 @@ export default async function Home() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {articlesSortedByRecency.map(slug => 
-                    <ArticleCard key={slug} slug={slug} />
+                    <ArticleCard className="aspect-video md:aspect-[3/4]" key={slug} slug={slug} />
                 )}
             </div>
         </section>
