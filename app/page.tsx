@@ -2,24 +2,27 @@ import { markdownManager } from "./markdown/markdown";
 import { PageCard } from "./components/PageCard";
 import { articleRelativeUrl } from "./article/[slug]/info";
 import { Metadata } from "next";
+import { baseUrl } from "./info";
 
 const NUM_NEWS_PAGES = 3;
 
 interface ArticleCardProps {
     slug: string;
     className?: string;
+    priority?: boolean;
 }
-const ArticleCard = ({ slug, className }: ArticleCardProps) => {
+const ArticleCard = ({ slug, className, priority }: ArticleCardProps) => {
     const meta = markdownManager.getArticle(slug);
-    return <PageCard href={`${articleRelativeUrl}/${slug}`} className={className} {...meta} />
+    return <PageCard href={`${articleRelativeUrl}/${slug}`} className={className} priority={priority} {...meta} />
 };
 
 export const metadata: Metadata = {
     title: "New Articles and Archive",
     description: "Home page which shows new articles and archive.",
     openGraph: {
+        images: [`${baseUrl}/home.webp`],
         title: "New Articles and Archive",
-        description: "Home page which shows new articles and archive.",
+        description: "New articles and archive of Patrick Bell's personal website.",
     },
 }
 
@@ -38,13 +41,13 @@ export default async function Home() {
                 <div className="w-full grid grid-cols-12 lg:grid-rows-2 gap-3">
                     {/* @note tailwind is a bit annoying here since we can't use lg:col-span-8 directly because it conflcits with col-start */}
                     <div className="lg:col-end-9 lg:row-span-2 col-start-1 col-end-13">
-                        <ArticleCard className="md:aspect-video h-full" slug={newsPages[0]} />
+                        <ArticleCard className="md:aspect-video h-full" priority slug={newsPages[0]} />
                     </div>
                     <div className="lg:row-start-1 lg:row-end-1 lg:col-start-9 lg:col-end-13 md:col-start-1 md:col-end-7 md:row-start-2 col-start-1 col-end-13">
-                        <ArticleCard className="md:aspect-video" slug={newsPages[1]} />
+                        <ArticleCard className="md:aspect-video" priority slug={newsPages[1]} />
                     </div>
                     <div className="lg:row-start-2 lg:row-end-2 lg:col-start-9 lg:col-end-13 md:col-start-7 md:col-end-13 md:row-start-2 col-start-1 col-end-13">
-                        <ArticleCard className="md:aspect-video" slug={newsPages[2]} />
+                        <ArticleCard className="md:aspect-video" priority slug={newsPages[2]} />
                     </div>
                 </div>
             </section>

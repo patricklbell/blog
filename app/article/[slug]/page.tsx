@@ -43,7 +43,7 @@ export default async function Article({
             </div>
         </ArticleBlock>
         
-        <ArticleImage src={imageUrl} />
+        <ArticleImage src={imageUrl} priority />
         <MDX source={source} assetsUrl={assetsUrl} />
     </article>
 }

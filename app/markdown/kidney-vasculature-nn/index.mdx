@@ -15,7 +15,7 @@ There exist many CNNs designed for image segmentation, such as U-Net, DeepLab, a
 ## Processing
 In order to apply and evaluate our algorithms we need to convert the label data from polygons into mask files to match the training images. The polygons of each `blood_vessel` label are converted to a mask image. Any tiles which had no labels, including `glomerulus` and `unsure`, are excluded from training. If a tile has a label, but not a `blood_vessel` label, a blank mask is generated.
 
-<Image src={`${props.assetsUrl}imgs/processing.jpg`} width={640} height={320}>
+<Image src={`${props.assetsUrl}imgs/processing.webp`} width={640} height={320}>
     Figure 1. Mask generated for a training example.
 </Image>
 
@@ -68,13 +68,13 @@ where $$w_0$$ and $$w_1$$ is the probability of a pixel belonging to the classes
 
 Otsu's segmentation is a reasonable baseline for testing if machine learning is necessary to solve this problem. We can see by looking at the training data that a thresholding algorithm won't work as contextual information is required, we can see in table 1 that Otsu's is not much better than random noise. We need to use machine learning and table 1 will be a useful baseline for our neural network to beat.
 
-<Image src={`${props.assetsUrl}imgs/report-01.jpg`} width={1796} height={748}>
+<Image src={`${props.assetsUrl}imgs/report-01.webp`} width={1796} height={748}>
     Table 1. Comparison of different algorithms. The metrics are calculated by averaging across the entire training set. The full and no segmentation scores demonstrate the class proportions.
 </Image>
 
 ## U-Net
 
-<Image src={`${props.assetsUrl}imgs/unet-architecture.jpg`} width={1400} height={914}>
+<Image src={`${props.assetsUrl}imgs/unet-architecture.webp`} width={1400} height={914}>
     Figure 2. The U-Net architecture, a down-sampling encoder extracts information into many feature channels which are then up-sampled to return to the original resolution. Arrows represent operations, blue boxes are multi-channel feature maps and white boxes are copied feature maps.
 </Image>
 
@@ -82,7 +82,7 @@ U-Net is a fully convolutional neural network which was introduced by [Ronneberg
 
 For the following experiments a standard 90-10 random train-test split was used. U-Net's logits were passed through a softmax to normalize results into a probability distribution.
 
-<Image src={`${props.assetsUrl}imgs/report-02.jpg`} width={810} height={527}>
+<Image src={`${props.assetsUrl}imgs/report-02.webp`} width={810} height={527}>
     Table 2. Settings and hyper-parameters initially used to train the U-Net the optimizer and batch size match the original U-Net paper.
 </Image>
 
@@ -91,16 +91,16 @@ The model is initially trained without normalizing the tiles. Figure 3 compares 
 
 Applying normalization allowed the epoch loss to decrease more quickly, this could be due to overfitting, but the validation shows an $$\approx 50 \\%$$ greater peak DSC over no normalization. Applying random morphological and color transforms didn't seem to have any benefit and slowed training.
 
-<Image src={`${props.assetsUrl}imgs/DSC-transforms.jpg`} width={2528} height={1328}/>
-<Image src={`${props.assetsUrl}imgs/epoch-loss-transforms.jpg`} width={2528} height={1328}>
+<Image src={`${props.assetsUrl}imgs/DSC-transforms.webp`} width={2528} height={1328}/>
+<Image src={`${props.assetsUrl}imgs/epoch-loss-transforms.webp`} width={2528} height={1328}>
     Figure 3. Result from training with different image pre-processing techniques. Epoch loss is the average loss for each training epoch, all other metrics are recalculated on the validation split at the end of an epoch. `transform` applies random morphological and color transforms using `Albumentations`, `morphtransform` only applies the morphological transforms.
 </Image>
 
 ### Batch Size
 The U-Net paper suggests a batch size of $$1$$ to maximise GPU usage and a correspondingly high momentum. [Kandel et al.](https://doi.org/10.1016/j.icte.2020.04.010) investigated different batch sizes when applied to CNN image classifiers and states that low batch sizes can lead the network to "bounce back and forth without achieving acceptable performance." The DSC in figure 3 shows this characteristic ping-ponging suggesting the batch size is too low. On the other hand, higher batch sizes can mean training takes too long to converge, the optimum batch size depends on many factors including the data-set, so experimentation is required. 
 
-<Image src={`${props.assetsUrl}imgs/batch-dsc.jpg`}  width={2528} height={1328}/>
-<Image src={`${props.assetsUrl}imgs/batch-iou.jpg`}  width={2528} height={1328}>
+<Image src={`${props.assetsUrl}imgs/batch-dsc.webp`}  width={2528} height={1328}/>
+<Image src={`${props.assetsUrl}imgs/batch-iou.webp`}  width={2528} height={1328}>
     Figure 4. Validation metrics for different batch sizes. The horizontal scale is relative time since training started, since we are concerned with performance over equivalent training time.
 </Image>
 
@@ -109,8 +109,8 @@ Figure 4 shows that as batch size increases, IoU and DSC take longer to improve 
 ### Loss Function
 The loss function measures how far a predicted label is from the ground truth. Binary Cross Entropy (`BCEwithLogitLoss`) is a widely employed loss function in semantic segmentation because of its stability. There exist other common semantic segmentation loss functions, which include focal loss, and combo loss. With the help of [*bigironsphere*'s Kaggle notebook](https://www.kaggle.com/code/bigironsphere/loss-function-library-keras-pytorch#BCE-Dice-Loss) the loss functions which are not built-in can be implemented in `PyTorch`. See [Jadon et al.](https://doi.org/10.1109%2Fcibcb48159.2020.9277638) for the mathematical definition of these loss functions, my focal implementation sets $$\alpha_t = 0.95 = 1 - 0.05$$ to the inverse class frequency and $$\gamma = 2$$, my combo loss weighs BCE and dice equally where $$\alpha=0.5$$. Before applying focal and combo loss, U-Net's logit output is passed through a sigmoid.
 
-<Image src={`${props.assetsUrl}imgs/loss-dsc.jpg`} width={2528} height={1328}/>
-<Image src={`${props.assetsUrl}imgs/loss-iou.jpg`} width={2528} height={1328}>
+<Image src={`${props.assetsUrl}imgs/loss-dsc.webp`} width={2528} height={1328}/>
+<Image src={`${props.assetsUrl}imgs/loss-iou.webp`} width={2528} height={1328}>
     Figure 5. Validation metrics for different loss functions. All runs are performed with batch sizes of $$16$$ over $$40$$ epochs, training over more epochs could show more useful results.
 </Image>
 
@@ -119,14 +119,14 @@ Figure 5 compares these metrics over equivalent training setups. Combo loss cons
 # Results
 After tuning these hyper-parameters a final model was trained over $$160$$ epochs with a batch size of $$16$$ using a combo loss function. The DSC shown in figure 6 shows the model converged towards a DSC of $$\approx 0.6$$. Results and an example of the model's predictions are shown in table 3.
 
-<Image src={`${props.assetsUrl}imgs/best-dsc.jpg`} width={1264} height={664} />
-<Image src={`${props.assetsUrl}imgs/best-iou.jpg`} width={1264} height={664} />
-<Image src={`${props.assetsUrl}imgs/best-loss.jpg`} width={1264} height={664} />
-<Image src={`${props.assetsUrl}imgs/best-sensitivity.jpg`} width={1264} height={664} >
+<Image src={`${props.assetsUrl}imgs/best-dsc.webp`} width={1264} height={664} />
+<Image src={`${props.assetsUrl}imgs/best-iou.webp`} width={1264} height={664} />
+<Image src={`${props.assetsUrl}imgs/best-loss.webp`} width={1264} height={664} />
+<Image src={`${props.assetsUrl}imgs/best-sensitivity.webp`} width={1264} height={664} >
     Figure 6. Validation metrics calculated while training the final model. Loss is shown per batch, rather than per epoch.
 </Image>
 
-<Image src={`${props.assetsUrl}imgs/report-03.jpg`} width={1711} height={747} >
+<Image src={`${props.assetsUrl}imgs/report-03.webp`} width={1711} height={747} >
     Table 3. Metrics over validation set from the models at 40<sup>th</sup>, 80<sup>th</sup> and 160<sup>th</sup> epoch with an example. Refer to table 1 for examples of these metrics on simpler segmentations.*
 </Image>
 

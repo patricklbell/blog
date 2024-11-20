@@ -6,7 +6,7 @@ Before we can create our diagrams we first need the atoms and other information 
 # Rendering The Proteins
 To render our proteins to the screen we need to form meshes which the GPU can efficiently draw. These meshes consist of triangles, each consisting of three vertices. The collection of triangles together enclose the ribbons which make up the diagram. To enable correct lighting we also need a normal for each vertex. Once you have a mesh you can draw the mesh with any 3D program you like or export a 3D model file.
 
-<Image src={`${props.assetsUrl}imgs/protein-wireframe.png`} width={988} height={523}>
+<Image src={`${props.assetsUrl}imgs/protein-wireframe.webp`} width={988} height={523}>
     The vertices, edges and triangles which enclose each ribbon. Each vertex needs a normal for correct shading. Where the structure is smooth, vertices and normals are shared, if instead we want sharp edges the triangle's vertices cannot be shared.
 </Image>
 
@@ -20,7 +20,7 @@ The spline algorithm was the main challenge here because conventional algorithms
 \overrightarrow{T_k} = (1-c) (\overrightarrow{P_{k+1}} - \overrightarrow{P_{k-1}}).
 ```
 
-<Image src={`${props.assetsUrl}imgs/protein-cardinal.png`} width={1000}>
+<Image src={`${props.assetsUrl}imgs/protein-cardinal.webp`} width={1000}>
     Averaged points and their tangents shown in red with parameter ($$c = 0.25$$).
 </Image>
 

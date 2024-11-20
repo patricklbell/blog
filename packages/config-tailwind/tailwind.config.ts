@@ -6,7 +6,6 @@ const config: Omit<Config, "content"> = {
     theme: {
         extend: {
             fontFamily: {
-                "serif": ["var(--font-garamond)", "serif"],
                 "sans": ["var(--font-geist-sans)", "sans-serif"],
                 "mono": ["var(--font-geist-mono)", "mono"],
             },
