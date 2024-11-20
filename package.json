@@ -2,6 +2,7 @@
   "name": "patricklbell",
   "version": "0.0.0",
   "private": true,
+  "packageManager": "pnpm@9.13.2",
   "scripts": {
     "dev": "next dev --turbo",
     "build": "next build",
