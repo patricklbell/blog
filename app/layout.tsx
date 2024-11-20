@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     siteName: "Patrick Bell's Personal Website",
     description: "Patrick Bell's personal website covering graphics, machine learning and software engineering topics.",
     url: baseUrl,
-    images: [`${baseUrl}/home.webp`] 
+    images: [`${baseUrl}/icon.webp`] 
   },
 };
 
