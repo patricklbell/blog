@@ -19,20 +19,6 @@ const geistMono = localFont({
   variable: "--font-geist-mono",
   weight: "100 900",
 });
-const ebGaramondSansSerif = localFont({
-  src: [
-    {
-      path: './fonts/EBGaramond-VF.ttf',
-      style: 'normal',
-    },
-    {
-      path: './fonts/EBGaramond-Italic-VF.ttf',
-      style: 'italic',
-    },
-  ],
-  variable: "--font-garamond",
-  weight: "100 900",
-});
 
 export const metadata: Metadata = {
   title: "Patrick Bell's Personal Website",
@@ -44,6 +30,7 @@ export const metadata: Metadata = {
     siteName: "Patrick Bell's Personal Website",
     description: "Patrick Bell's personal website covering graphics, machine learning and software engineering topics.",
     url: baseUrl,
+    images: [`${baseUrl}/home.webp`] 
   },
 };
 
@@ -62,13 +49,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${ebGaramondSansSerif.variable} font-sans antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}
       >
         <header className="z-[100] top-0 w-full my-6">
           <ArticleBlock>
             <nav aria-label="Main" data-orientation="horizontal" dir="ltr" className="flex flex-row justify-center">
               <Link href="/" aria-label="Home">
-                <Image width="32" height="32" src="/home.png" alt="Icon" />
+                <Image width="32" height="32" src="/home.webp" alt="Icon" />
               </Link>
             </nav>
           </ArticleBlock>

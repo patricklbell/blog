@@ -1,6 +1,6 @@
 Physically based rendering (PBR) is a general term for techniques in 3D graphics that approximate physical laws. The term PBR has come to generally mean techniques which aim for realistic rendering of real world materials. The PBR approach developed by Disney in 2012 still forms the basis of real-time rendering of realistic materials. This post explains the physical models and mathematics behind PBR. Hopefully by the end you will have justified why PBR shaders, [for example this GLSL shader](https://github.com/patricklbell/3d_engine/blob/main/data/shaders/lib/pbr.glsl), look physically correct.
 
-<Image src={`${props.assetsUrl}imgs/pbr-alt.jpg`} width={459} height={400}>
+<Image src={`${props.assetsUrl}imgs/pbr-alt.webp`} width={459} height={400}>
   A dielectric (not metallic) material lit by a directional light following a PBR model.
 </Image>
 
@@ -28,7 +28,7 @@ For each pixel on the screen imagine a ray which travels from a virtual eye and 
 Intensity is an general term, radiance and irradiance are two more specific physical units of light intensity. Radiance and irradiance technically have the same physical units of watts per square metre ($$\text{W}/\text{m}^2$$) but understanding the difference between the two is key to ensuring PBR conserves energy.
 
 ### Irradiance
-<Image src={`${props.assetsUrl}imgs/irradiance.jpg`}>
+<Image src={`${props.assetsUrl}imgs/irradiance.webp`}>
   Irradiance is the relative flux through or onto an area.
 </Image>
 
@@ -41,7 +41,7 @@ Imagine a point emitting light in every direction with a total radiant flux of $
 The notation $$dA$$ indicates that the area is very small, this will be useful because it means the area is flat and has a normal.
 
 ### Radiance
-<Image src={`${props.assetsUrl}imgs/radiance.jpg`}>
+<Image src={`${props.assetsUrl}imgs/radiance.webp`}>
   Radiance is the flux from a certain direction onto or reflected from an area.
 </Image>
 
@@ -49,7 +49,7 @@ Irradiance considers flux coming from every direction, but in rendering we want 
 
 This patch is analogous to the arc of a circle. The length of an arc is measured in radians, the patch's area is measured in [steradians](https://en.wikipedia.org/wiki/Steradian).
 
-<Image src={`${props.assetsUrl}imgs/cosrule.jpg`} width={6131} height={2348}>
+<Image src={`${props.assetsUrl}imgs/cosrule.webp`} width={6131} height={2348}>
   Projecting the area $$dA$$ so it is perpendicular to the flux.
 </Image>
 
@@ -78,7 +78,7 @@ Formally, radiance is the radiant flux ($$\Phi$$) per unit solid angle ($$\omega
 In this post we are going to assume that the radiance $$L$$ of each light in a scene is known and take up an infinitesimal solid angle. This models directional lights such as the sun.
 
 ## Colour
-<Image src={`${props.assetsUrl}imgs/spd.jpg`} width={560} height={531}>
+<Image src={`${props.assetsUrl}imgs/spd.webp`} width={560} height={531}>
   Spectral power distribution of sunlight.
 </Image>
 
@@ -104,7 +104,7 @@ This is called the [rendering equation](https://en.wikipedia.org/wiki/Rendering_
 
 As mentioned earlier, the point $$\pmb{p}$$ is analogous to a small planar area $$dA$$ with normal $$\pmb{n}$$. Light which reflects off the surface can not come from behind the plane, so we consider only incident radiances directed from a hemisphere $$\Omega$$ lying on the surface. This assumption precludes subsurface scattering effects (light hitting another point on the surface, scattering through the surface, and emerging inside $$dA$$) which are significant in materials such as skin and water.
 
-<Image src={`${props.assetsUrl}imgs/hemisphere.jpg`} width={1430} height={780}>
+<Image src={`${props.assetsUrl}imgs/hemisphere.webp`} width={1430} height={780}>
   The hemisphere $$\Omega$$ considers light from all directions $$\pmb{\omega_i}$$ incident on point $$\pmb{p}$$.
 </Image>
 
@@ -128,7 +128,7 @@ You may be wondering why the BRDF is defined in terms of incident **irradiance**
 
 # BRDF
 
-<Image src={`${props.assetsUrl}imgs/MERL100Slices.jpg`} width={1114} height={692}>
+<Image src={`${props.assetsUrl}imgs/MERL100Slices.webp`} width={1114} height={692}>
   Slices from the BRDFs of different materials showing how reflection varies according to incident direction, from the [MERL BRDF dataset](https://cdfg.csail.mit.edu/wojciech/brdfdatabase).
 </Image>
 
@@ -149,7 +149,7 @@ Different materials have different BRDFs which can be measured empirically or ca
 
 ## Lambertian
 
-<Image src={`${props.assetsUrl}imgs/snow.jpg`} width={1024} height={683}>
+<Image src={`${props.assetsUrl}imgs/snow.webp`} width={1024} height={683}>
   The tiny facets of ice crystals in unpacked snow make it close to an ideal lambertian material. \"[Snowy Hillside, Creag a' Bhealaich, Sutherland](https://www.geograph.org.uk/photo/6752541)\" by Andrew Tryon, [Creative Commons](http://creativecommons.org/licenses/by-sa/2.0/).
 </Image>
 
@@ -173,7 +173,7 @@ This is the Lambertian BRDF.
 
 ## Mirror
 
-<Image src={`${props.assetsUrl}imgs/mirror-ball.jpg`}>
+<Image src={`${props.assetsUrl}imgs/mirror-ball.webp`}>
   [Mirror ball ornament](https://pixnio.com/objects/glass/flower-glass-outdoor-ball-mirror-reflection-garden-wood) demonstrating specular reflection, [CC0](https://creativecommons.org/publicdomain/zero/1.0/).
 </Image>
 
@@ -192,7 +192,7 @@ where $$k\in[0,1]$$. $$\delta(x,y)$$ is the Dirac delta function, which is posit
 ## Specular Microfacet
 If you scratch a metal it becomes less shiny, and polishing makes it more shiny. In scratching the metal we are changing the microscopic surface of the metal to be more rough. A material's microsurface can be very complicated so we make an assumption that materials microsurfaces only vary in one parameter, roughness. We also assume that there are no overhangs in the microsurface.
 
-<Image src={`${props.assetsUrl}imgs/gypsum.jpg`} width={800} height={602}>
+<Image src={`${props.assetsUrl}imgs/gypsum.webp`} width={800} height={602}>
   Microsurface of gypsum, coloured SEM by [Steve Gschmeissner](https://www.sciencephoto.com/contributor/sgs/).
 </Image>
 
@@ -303,7 +303,7 @@ The GGX distribution is also simpler to calculate. The GGX distribution can be s
 
 The distributions presented here assume a constant roughness $$\alpha$$ across our macrofacet, this is not true for some materials. Materials such as brushed metal can have a different "roughness" for different viewing direction, meaning the microfacets are aligned differently along different directions in the material. This is called anisotropic reflection, as opposed to the isotropic reflection presented here.
 
-<Image src={`${props.assetsUrl}imgs/density-alt.jpg`} width={920} height={400}>
+<Image src={`${props.assetsUrl}imgs/density-alt.webp`} width={920} height={400}>
   Visualisation of the GGX and Beckmann density functions. For low roughness materials an off-peak bright spot is visible.
 </Image>
 
@@ -339,7 +339,7 @@ Alternatively Earl Hammon Jr also suggested a cheap approximation to a *correlat
   \end{align*}
 ```
 
-<Image src={`${props.assetsUrl}imgs/geometry-alt.jpg`} width={459} height={400}>
+<Image src={`${props.assetsUrl}imgs/geometry-alt.webp`} width={459} height={400}>
   Visualisation of the geometry term, all those presented here look similar.
 </Image>
 
@@ -360,7 +360,7 @@ is commonly used instead, where $$F_0$$ is the colour of specularly reflected wh
 
 A dialetric's $$F_0$$ is closer to white, meaning specular reflection is not tinted. A conductor's specular colour is closer to it's "albedo" or base colour, since the diffuse reflections disappear and the specular reflection must account for what colour the material has.
 
-<Image src={`${props.assetsUrl}imgs/fresnel-alt.jpg`} width={400} height={399}>
+<Image src={`${props.assetsUrl}imgs/fresnel-alt.webp`} width={400} height={399}>
   An sphere shaded by the Fresnel-Schlick approximation, grazing angles (light tangent to the surface) cause stronger specular reflections.
 </Image>
 

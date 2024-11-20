@@ -10,9 +10,10 @@ type PageCardProps = {
     imageUrl: string;
     href: string;
     className?: string;
+    priority?: boolean;
 };
 
-export const PageCard = ({ title, publishedTime, imageUrl, headerLoadingColor, href, className } : PageCardProps) => {
+export const PageCard = ({ title, publishedTime, imageUrl, headerLoadingColor, href, className, priority } : PageCardProps) => {
     return (
         <Link
             className={cn("group text-white block relative w-full max-w-full rounded-md aspect-[3/4] overflow-hidden", className)}
@@ -32,7 +33,7 @@ export const PageCard = ({ title, publishedTime, imageUrl, headerLoadingColor, h
                     </span>
                 </div>
             </div>
-            <Image src={imageUrl} width={1366} height={768} loading="lazy" alt={`${title} > cover image`} className="object-cover w-full h-full inset-0 transition-transform ease-in-out duration-150 group-hover:scale-110 text-[0]"/>
+            <Image priority={priority} src={imageUrl} width={1366} height={768} alt={`${title} > cover image`} className="object-cover w-full h-full inset-0 transition-transform ease-in-out duration-150 group-hover:scale-110 text-[0]"/>
         </Link>
     )
 }

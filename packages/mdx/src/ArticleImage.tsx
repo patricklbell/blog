@@ -6,9 +6,10 @@ export type ArticleImageProps = React.ImgHTMLAttributes<HTMLImageElement> & {
     children?: React.ReactElement;
     className?: string;
     wide?: boolean;
+    priority?: boolean;
 };
 
-export const ArticleImage = ({ children, className, wide, ...imgProps }: ArticleImageProps) => {
+export const ArticleImage = ({ children, className, wide, priority, ...imgProps }: ArticleImageProps) => {
     const content = <div className="flex flex-col items-center my-16">
         <div
             className={
@@ -18,7 +19,7 @@ export const ArticleImage = ({ children, className, wide, ...imgProps }: Article
                 )
             }>
             <picture className="mx-auto">
-                <img decoding="async" loading="lazy" {...imgProps} />
+                <img decoding="async" loading={priority ? "eager" : "lazy"} {...imgProps} />
             </picture>
         </div>
         {children}

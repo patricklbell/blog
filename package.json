@@ -2,6 +2,7 @@
   "name": "patricklbell",
   "version": "0.0.0",
   "private": true,
+  "packageManager": "pnpm@9.13.2",
   "scripts": {
     "dev": "next dev --turbo",
     "build": "next build",
@@ -16,8 +17,7 @@
     "lucide-react": "^0.459.0",
     "next": "15.0.3",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "uniqolor": "^1.1.1"
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
     "@patricklbell/config-tailwind": "workspace:*",
