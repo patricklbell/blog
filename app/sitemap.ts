@@ -12,7 +12,8 @@ const toSitemapDate = (dt: Date) => {
 export default function sitemap(): MetadataRoute.Sitemap {
   const markdown = [
     ...markdownManager.getArticles(),
-    ...markdownManager.getAnnexes()
+    ...markdownManager.getAnnexes(),
+    ...markdownManager.getProjects()
   ]
     .map(slug => markdownManager.getMetadata(slug))
     .map(({ url, lastModified }) => (lastModified ? {

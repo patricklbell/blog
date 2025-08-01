@@ -6,3 +6,7 @@ export const utcFormatDateTime = (dt: Date, short: boolean = false) => {
 export interface SlugParamsType {
     params: Promise<{ slug: string }>
 }
+
+export const assertUnreachable = (_: never): never => {
+    throw new Error("Didn't expect to get here");
+}
