@@ -1,0 +1,15 @@
+Poisson surface reconstruction (PSR) is a technique for reconstructing the
+surfaces of solids from point clouds. The algorithm requires surface normals 
+for each point. PSR tends to produce high quality watertight models and is a standard technique
+for many problems in computer vision and computer graphics.
+
+For my own and other reference I have written a condensed explanation of PSR, using
+the same formalisms from [Kazhdan et al.](https://hhoppe.com/poissonrecon.pdf).
+
+# Example
+TODO add polyscope 3d examples
+
+# Explanation
+Given a solid $$M$$ with surface denoted $$\partial M$$ we wish to derive $$\partial M$$
+from a set of samples $$S$$. Each sample $$s \in S$$ has a position in space $$s.p$$ and 
+an inward facing normal $$s.\overrightarrow{N}$$.

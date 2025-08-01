@@ -3,11 +3,8 @@ import localFont from "next/font/local";
 import "@/globals.css";
 import "@patricklbell/mdx/index.css";
 import "@patricklbell/kit/index.css";
-import Link from "next/link";
-import { SiGithub, SiLinkedin } from "@icons-pack/react-simple-icons";
-import { ArticleBlock } from "@patricklbell/mdx";
-import Image from "next/image";
 import { baseUrl } from "./info";
+import { BlogLayout } from "./components/BlogLayout";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -44,38 +41,14 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const currentYear = (new Date()).getFullYear();
-  
   return (
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}
       >
-        <header className="z-[100] top-0 w-full my-6">
-          <ArticleBlock>
-            <nav aria-label="Main" data-orientation="horizontal" dir="ltr" className="flex flex-row justify-center">
-              <Link href="/" aria-label="Home">
-                <Image width="32" height="32" src="/home.webp" alt="Icon" />
-              </Link>
-            </nav>
-          </ArticleBlock>
-        </header>
-        <main>
+        <BlogLayout>
           {children}
-        </main>
-        <footer className="mt-40 mb-8">
-          <div className="flex flex-row justify-between max-w-container items-center">
-            <span className="leading-taut text-sm">Patrick Bell, CC0 {2022}-{currentYear}</span>
-            <div className="flex flex-row items-center gap-4">
-              <Link target="_blank" href="https://github.com/patricklbell/" aria-label="Github">
-                <SiGithub />
-              </Link>
-              <Link target="_blank" href="https://au.linkedin.com/in/patrick-bell-b9b478272" aria-label="LinkedIn">
-                <SiLinkedin />
-              </Link>
-            </div>
-          </div>
-        </footer>
+        </BlogLayout>
       </body>
     </html>
   );

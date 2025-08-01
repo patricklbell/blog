@@ -10,9 +10,11 @@ const buttonVariants = cva(
       variant: {
         default: "bg-black text-white",
         invert: "inner-border-2 inner-border-black bg-white text-black",
+        ghost: "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
       },
       size: {
         default: "h-12 rounded-full px-6",
+        icon: "size-9",
       },
     },
     defaultVariants: {

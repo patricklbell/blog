@@ -4,6 +4,9 @@ import sharedConfig from "@patricklbell/config-tailwind";
 const config: Config = {
   content: ["./src/**/*.{js,ts,jsx,tsx,mdx}"],
   presets: [sharedConfig],
+  plugins: [
+    require("tailwindcss-animate"),
+  ]
 };
 
 export default config;

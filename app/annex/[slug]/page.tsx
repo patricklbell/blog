@@ -1,9 +1,9 @@
-import { ArticleBlock, MDX } from "@patricklbell/mdx";
+import { MDX } from "@patricklbell/mdx";
 import { createMarkdownPageMetadata, markdownManager } from "../../markdown/markdown";
 import { promises as fs } from 'fs';
 import { SlugParamsType } from "@/utils";
-import { Anchor } from "@patricklbell/kit";
 import { articleRelativeUrl } from "@/article/[slug]/info";
+import { PageAnnexTitle } from "@/components/PageAnnexTitle";
 
 // if a dynamic segment is visited, show 404
 export const dynamicParams = false
@@ -28,16 +28,7 @@ export default async function Article({
     const source = await fs.readFile(process.cwd() + src, 'utf8');
 
     return <article className="flex flex-col">
-        <ArticleBlock className="font-sans leading-normal">
-            <div className="flex flex-col items-center text-center break-words">
-                This is an annex to
-                <span>
-                    <Anchor href={`${articleRelativeUrl}/${refererSlug}`}>
-                        {articleTitle}
-                    </Anchor>.
-                </span>
-            </div>
-        </ArticleBlock>
+        <PageAnnexTitle mainArticleTitle={articleTitle} mainArticleLink={`${articleRelativeUrl}/${refererSlug}`} />
         
         <MDX source={source} assetsUrl={assetsUrl} />
     </article>
