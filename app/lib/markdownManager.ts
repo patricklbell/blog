@@ -65,7 +65,7 @@ class MarkdownManager {
                 author: "Patrick Bell",
                 tags: ["3D Graphics", "WebAssembly", "Spline", "Computational biology"],
                 codeLink: "https://github.com/patricklbell/chemical_visualizer",
-                demoLink: "https://patricklbell.github.io/chemical_visualizer/",
+                demoLink: "https://patricklbell.github.io/chemical-visualizer/",
                 headerLoadingColor: "#57473E",
             },
             "visualising-graphics-engines": {
@@ -118,7 +118,7 @@ class MarkdownManager {
                 description: "Systems programming language using LLVM backend.",
                 publishedTime: new Date(2025, 7, 2),
                 lastModified: new Date(2025, 9, 25),
-                codeLink: "https://github.com/patricklbell/unnamed-lang/xpbd",
+                codeLink: "https://github.com/patricklbell/unnamed-lang",
                 tags: ["Systems Programming", "Programming Languages"],
                 headerLoadingColor: "#7787b8",
             },
