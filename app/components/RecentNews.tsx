@@ -1,4 +1,4 @@
-import { markdownManager } from "@/markdown/markdown";
+import { markdownManager } from "@/lib/markdownManager";
 import { ArticleCard } from "./ArticleCard";
 
 const NUM_NEWS_PAGES = 3;
@@ -14,15 +14,15 @@ export const RecentNews = () => {
             <span className="text-base mb-1 tracking-wide">Home</span>
             <h1 className="text-4xl tracking-tight leading-tight">New Articles</h1>
         </div>
-        <div className="w-full grid grid-cols-12 lg:grid-rows-2 gap-3">
+        <div className="w-full grid grid-cols-12 gap-3 md:grid-rows-3">
             {/* @note tailwind is a bit annoying here since we can't use lg:col-span-8 directly because it conflcits with col-start */}
-            <div className="lg:col-end-9 lg:row-span-2 col-start-1 col-end-13">
+            <div className="col-start-1 col-end-13 md:row-start-1 md:row-span-2">
                 <ArticleCard className="md:aspect-video h-full" priority slug={newsPages[0]} />
             </div>
-            <div className="lg:row-start-1 lg:row-end-1 lg:col-start-9 lg:col-end-13 md:col-start-1 md:col-end-7 md:row-start-2 col-start-1 col-end-13">
+            <div className="col-start-1 col-end-13 md:col-start-1 md:col-end-7 md:row-start-3 md:row-span-1">
                 <ArticleCard className="md:aspect-video" priority slug={newsPages[1]} />
             </div>
-            <div className="lg:row-start-2 lg:row-end-2 lg:col-start-9 lg:col-end-13 md:col-start-7 md:col-end-13 md:row-start-2 col-start-1 col-end-13">
+            <div className="hidden md:block md:col-start-7 md:col-end-13 md:row-start-3 md:row-span-1">
                 <ArticleCard className="md:aspect-video" priority slug={newsPages[2]} />
             </div>
         </div>

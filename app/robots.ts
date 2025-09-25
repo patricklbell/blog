@@ -1,4 +1,4 @@
-import { baseUrl } from '@/info'
+import { baseUrl } from '@/lib/info'
 
 // route segment configuration
 export const dynamic = 'force-static'

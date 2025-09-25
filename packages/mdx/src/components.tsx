@@ -15,7 +15,9 @@ export const components: MDXComponents = {
     },
     strong: 'strong',
     em: 'em',
-    blockquote: 'blockquote',
+    blockquote({ className, ...props }) {
+        return <ArticleBlock className='col-start-1 col-span-12 italic text-gray-800'><span {...props} /></ArticleBlock>
+    },
     pre({ className, ...props }) {
         return <ArticleBlock><pre className={cn('border rounded-lg font-mono p-2 overflow-x-scroll')} {...props} /></ArticleBlock>
     },

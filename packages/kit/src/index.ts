@@ -3,3 +3,4 @@ export * from "./Button.tsx";
 export * from "./Sheet.tsx";
 export * from "./Sidebar.tsx";
 export * from "./utils.ts";
+export * from "./use-mobile.ts";

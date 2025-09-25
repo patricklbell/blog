@@ -3,8 +3,7 @@ import localFont from "next/font/local";
 import "@/globals.css";
 import "@patricklbell/mdx/index.css";
 import "@patricklbell/kit/index.css";
-import { baseUrl } from "./info";
-import { BlogLayout } from "./components/BlogLayout";
+import { baseUrl } from "./lib/info";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -37,18 +36,19 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({
-  children,
+  children
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
     <html lang="en">
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}
       >
-        <BlogLayout>
-          {children}
-        </BlogLayout>
+        {children}
       </body>
     </html>
   );

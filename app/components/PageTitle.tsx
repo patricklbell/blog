@@ -1,4 +1,4 @@
-import { utcFormatDateTime } from "@/utils";
+import { utcFormatDateTime } from "@/lib/utils";
 import { CodeLink, DemoLink } from "@/components/PageLink";
 import { ArticleBlock } from "@patricklbell/mdx";
 

@@ -1,4 +1,4 @@
-import { markdownManager } from "@/markdown/markdown";
+import { markdownManager } from "@/lib/markdownManager";
 import { ArticleCard } from "./ArticleCard";
 
 export const AllArticles = () => {

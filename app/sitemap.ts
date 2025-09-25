@@ -1,5 +1,5 @@
-import { markdownManager } from "./markdown/markdown"
-import { baseUrl } from "./info"
+import { markdownManager } from "./lib/markdownManager"
+import { baseUrl } from "./lib/info"
 import { MetadataRoute } from "next"
 
 // route segment configuration
@@ -12,8 +12,7 @@ const toSitemapDate = (dt: Date) => {
 export default function sitemap(): MetadataRoute.Sitemap {
   const markdown = [
     ...markdownManager.getArticles(),
-    ...markdownManager.getAnnexes(),
-    ...markdownManager.getProjects()
+    ...markdownManager.getAnnexes()
   ]
     .map(slug => markdownManager.getMetadata(slug))
     .map(({ url, lastModified }) => (lastModified ? {

@@ -1,4 +1,4 @@
-import { markdownManager } from "@/markdown/markdown";
+import { markdownManager } from "@/lib/markdownManager";
 import { PageCard } from "./PageCard";
 
 interface ArticleCardProps {

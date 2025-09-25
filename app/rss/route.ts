@@ -1,7 +1,7 @@
-import { articleBaseUrl } from "@/article/[slug]/info";
-import { baseUrl } from "@/info";
+import { articleBaseUrl } from "@/(blog)/article/[slug]/info";
+import { baseUrl } from "@/lib/info";
 import { metadata } from "@/layout";
-import { markdownManager } from "@/markdown/markdown"
+import { markdownManager } from "@/lib/markdownManager"
 
 // route segment configuration
 export const dynamic = 'force-static'

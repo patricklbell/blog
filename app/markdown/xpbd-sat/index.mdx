@@ -1,0 +1,64 @@
+Collision detection involves determining how objects overlap in 3D space. There are
+different techniques, I describe here a technique which uses the separating axis theorem (SAT) and
+is suitable for convex polyhedra with a small number of edges.
+
+The SAT is given by [Wikipedia](https://en.wikipedia.org/wiki/Hyperplane_separation_theorem) as:
+>Two closed convex objects are disjoint if there exists a line ("separating axis") onto which the two objects' projections are disjoint.
+
+In other words, if two convex object's don't overlap we can create a plane between the two objects. 
+This works in any dimension.
+
+<Image src={`${props.assetsUrl}imgs/sat.svg`}>
+  A line, perpendicular to the separating axis, can be drawn which separates the two convex shapes, they cannot be overlapping.
+</Image>
+The SAT immediately suggests an algorithm for collisions detection. 
+- Loop through all separating axes
+- Project each shape onto the axis, forming two segments
+- If the segments do not overlap then neither do the objects
+
+Additionally, in the case the shapes do overlap, we want to know the penetration axis 
+(the normal at the initial contact manifold) and the penetration distance (how far along 
+penetration axis we need to move the shapes apart). These quantities can be found by a small
+modification on the algorithm to keep track of the minimum overlap.
+- If the segments overlap then calculate the overlap size $d$
+- If $d < d_{\text{min}}$, replace $d_{\text{min}}$ and the penetrating axis
+
+After handling all axis, $d_{\text{min}}$ is the penetration distance and we know the penetration axis.
+This assumes objects were moving along approximately straight paths between collision checks, which is generally reasonable.
+
+## Projection step
+<Image src={`${props.assetsUrl}imgs/sat-polygon-projected.svg`}>
+  We can projecting a shape onto the separating axis, since it is convex it will form a line segment.
+</Image>
+For polytopes, we loop through each vertex position $\pmb{v_i}$ in world space and project onto the separating axis $\pmb{s}$, $v_{\text{proj}} = \pmb{v_i} \cdot \pmb{s}$.
+The line segment is then $[v_\text{min}, v_\text{max}]$. For non-polytopes, we may be able to find the segment
+directly. For example, a sphere with center $\pmb{c}$ and radius $r$ will form the segment $\pmb{c}\cdot\pmb{s} \pm r$.
+
+One we have the two segments $[A,B]$ and $[C,D]$ we can determine if, and how they overlap. There
+are four cases (noting the order of the shapes is important here).
+
+<Image src={`${props.assetsUrl}imgs/segment-overlap-cases.svg`} />
+
+We can organise these overlaps into two sets of conditions:
+- $(A < C \;\text{and}\; B > C) \;\text{or}\; (C < A \;\text{and}\; D > A)$: The objects overlap
+- $B - C < D - A$: Move the red object to the left of the blue
+
+If we need to move the red object to the left then it's penetration axis is $\pmb{s}$ and the blue's is $-\pmb{s}$.
+If we need to move to the red object to the right, then the axes are flipped. In either case the penetration distance $d = \text{Min}(B - C, D - A)$.
+
+## Choosing Separating Axes
+<Image src={`${props.assetsUrl}imgs/sat-polygon.svg`}>
+  We choose a separating axis perpendicular to each edge, in this case the right-most edge of the red shape.
+</Image>
+
+A major problem with the algorithm as presented is that there are an infinite number of possible penetrating axis, which
+is intractable. Fortunately, for polygons (and other simple shapes) we only need to check
+a few of these axes. In 2D, we only need to check each direction which is perpendicular to an edge of either one of the shapes.
+
+<Image src={`${props.assetsUrl}imgs/sat-axis-3d.svg`}>
+  Two cases, left: a separation axis perpendicular to a face; right: a separation axis perpendicular to an edge pair.
+</Image>
+In 3D, we check axes normal to each face of the polyhedra.
+Additionally, to detect edge on edge collision, we need to check the axis perpendicular to each pair of edges between
+the two polyhedra. For an edge pair with directions $\pmb{e_1}$, $\pmb{e_2}$, the separting axis $\pmb{s} = \pmb{e_1} \times \pmb{e_2}$.
+Unfortunately, this means the number of possible axes is  $O(n^2)$ for the polyhedra edges, which is large for complex polyhedra.

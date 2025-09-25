@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { cn } from "@patricklbell/kit";
-import { utcFormatDateTime } from "@/utils";
+import { utcFormatDateTime } from "@/lib/utils";
 import Image from "next/image";
 
 type PageCardProps = {
