@@ -56,7 +56,7 @@ export const components: MDXComponents = {
     "mjx-container"({ className, ...props }) {
         return React.createElement(
             'mjx-container',
-            { className: cn("overflow-x-auto", className), ...props }
+            { className: cn("overflow-x-auto overflow-y-hidden", className), ...props }
         )
     },
 }
