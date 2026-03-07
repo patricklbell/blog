@@ -2,7 +2,7 @@
   "name": "patricklbell",
   "version": "0.0.0",
   "private": true,
-  "packageManager": "pnpm@9.13.2",
+  "packageManager": "pnpm@10.30.3",
   "overrides": {
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
