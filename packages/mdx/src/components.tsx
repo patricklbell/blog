@@ -19,7 +19,7 @@ export const components: MDXComponents = {
         return <ArticleBlock className='col-start-1 col-span-12 italic text-gray-800'><span {...props} /></ArticleBlock>
     },
     pre({ className, ...props }) {
-        return <ArticleBlock><pre className={cn('border rounded-lg font-mono p-2 overflow-x-scroll')} {...props} /></ArticleBlock>
+        return <ArticleBlock><pre className={cn('border rounded-lg font-mono p-2 overflow-x-auto')} {...props} /></ArticleBlock>
     },
     code: 'code',
     h1({ className, ...props }) {
@@ -56,7 +56,7 @@ export const components: MDXComponents = {
     "mjx-container"({ className, ...props }) {
         return React.createElement(
             'mjx-container',
-            { className: cn("overflow-x-scroll", className), ...props }
+            { className: cn("overflow-x-auto", className), ...props }
         )
     },
 }
