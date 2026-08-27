@@ -5,24 +5,23 @@ import { ArticleCard } from "./ArticleCard";
 import { NUM_NEWS_PAGES_MD, NUM_NEWS_PAGES_SM } from "./RecentNews";
 
 /* The recent grid picks up where <RecentNews/> left off, so no article is shown
-   twice, and shows RECENT_ROWS whole rows of tiles. Both of those depend on the
-   layout, mobile stacks into one column and only has room for two of the news
-   tiles, so each breakpoint gets its own slice of the articles. */
-const RECENT_ROWS = 1;
+   twice, and shows whole rows of tiles. Both of those depend on the layout,
+   mobile stacks into one column and only has room for two of the news tiles, so
+   each breakpoint gets its own slice of the articles. */
 const RECENT_LAYOUTS = [
-    { news: NUM_NEWS_PAGES_SM, columns: 1 }, // below md
-    { news: NUM_NEWS_PAGES_MD, columns: 2 }, // md
-    { news: NUM_NEWS_PAGES_MD, columns: 3 }, // lg and above
+    { news: NUM_NEWS_PAGES_SM, columns: 1, rows: 2 }, // below md
+    { news: NUM_NEWS_PAGES_MD, columns: 2, rows: 1 }, // md
+    { news: NUM_NEWS_PAGES_MD, columns: 3, rows: 1 }, // lg and above
 ];
 
 type RecentLayout = (typeof RECENT_LAYOUTS)[number];
 type RecentRange = { start: number, end: number };
 
-const recentRange = ({ news, columns }: RecentLayout, total: number): RecentRange => {
+const recentRange = ({ news, columns, rows: wanted }: RecentLayout, total: number): RecentRange => {
     /* <RecentNews/> renders nothing when there aren't enough articles to fill
        it, in which case there is nothing to skip. */
     const start = total < NUM_NEWS_PAGES_MD ? 0 : news;
-    const available = Math.min(RECENT_ROWS * columns, Math.max(total - start, 0));
+    const available = Math.min(wanted * columns, Math.max(total - start, 0));
 
     /* Prefer dropping articles over a ragged last row, unless that would leave
        no tiles at all, ie. what is left over is shorter than a single row. */
