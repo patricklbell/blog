@@ -1,8 +1,6 @@
-3D Gaussian splatting (3DGS) reconstructs a scene from a set of photographs as a collection of Gaussians, which are alpha blended to synthesise new views. The Gaussians are optimised against a photometric loss, so nothing in the algorithm constrains them to lie on the scene's surfaces. Recovering the surfaces is useful for occlusion and collision queries, and for using the reconstruction in tools which expect a mesh.
+This article was based on my work on next best view planning for 3D Gaussian splats. It explains how Poisson surface reconstruction (PSR) can be used to reconstruct the surfaces of a scene from 3D Gaussain splats (3DGS). First we will give background on PSR and 3DGS then we will discuss how to use to use Gaussian splats as input to PSR. Finally, we will briefly explain using stochastic surface reconstruction for next best view planning.
 
-Poisson surface reconstruction (PSR) reconstructs a surface from a point cloud with normals. This article explains what PSR requires of that point cloud, why the Gaussians do not satisfy those requirements directly, and how to sample them so that they do. The notation follows [Kazhdan et al.](https://hhoppe.com/poissonrecon.pdf), which describes PSR in full.
-
-# Poisson Surface Reconstruction
+# Background: Poisson Surface Reconstruction
 
 Define the model as $M$ with surface $\partial M$, and an indicator function $\chi_M$ which is $1$ inside the model and $0$ outside. PSR does not fit $\partial M$ directly. It reconstructs $\chi_M$ and then extracts $\partial M$ as a level set.
 
@@ -40,9 +38,7 @@ $\vec{V}$ is assembled from independent samples, so in general it is not the gra
     \end{equation*}
 ```
 
-## Requirements on the Samples
-
-Four properties of $S$ follow from these equations.
+## Expectation for Samples
 
 - **Each sample has a normal.** $\vec{V}$ is defined in terms of $s.\vec{N}$.
 - **Normals are consistently oriented.** The sign of $s.\vec{N}$ determines which side of a sample is interior to the model.
@@ -53,9 +49,7 @@ Four properties of $S$ follow from these equations.
   Grey is the true surface and red is the reconstruction. (a) one normal is flipped. (b) samples are concentrated on one arc and $|\mathcal{P}_s|$ is constant. (c) samples are displaced off the surface.
 </Image>
 
-A fifth property is not visible in the equations. $\tilde{\chi}$ is defined over the whole domain, so $\partial M$ closes over regions which were never sampled, and the reconstruction does not distinguish these from regions which were. Surface uncertainty is discussed in the last section.
-
-# 3D Gaussian Splatting
+# Background: 3D Gaussian Splatting
 
 3DGS represents a scene as a collection of Gaussians, each parameterised by a position, rotation, scale, opacity and a set of spherical harmonic coefficients. A view is synthesised by projecting the Gaussians into screen space and alpha blending them in depth order. The parameters are optimised by gradient descent against a photometric loss between the synthesised and source views. An adaptive density control algorithm periodically adds Gaussians in poorly represented regions of the scene and removes them from dense or transparent ones.
 
@@ -122,32 +116,15 @@ This holds only for blocks which are covered by the surface throughout. A block 
 
 The samples which pass the mask are transformed into world space by $\mathbf{W}_i^{-1}$ and accumulated across the input views. Remaining outliers are rejected by comparing each sample's distance to its neighbours against the distribution over the whole point cloud, and the point cloud is downsampled spatially to bound the size of the solve.
 
-```
-S = {}
-for each input view i:
-    render depth, alpha from pose i
-    X = backproject(depth)                  # view space positions
-    N = normals from central differences of X
-    X, N = boxfilter(X, k), boxfilter(N, k)
-    A    = boxproduct(alpha, k) > 0.5       # covered throughout
-    for each (u,v) where A(u,v):
-        S += ( W_i^-1 X(u,v), -W_i^-1 N(u,v) )
-S = spatial_downsample(remove_outliers(S))
-```
-
 # Surface Uncertainty
 
-Running the solve on this point cloud gives a mesh, but it does not indicate which parts of that mesh are supported by samples.
+For online capture of a scene it is useful to know where in the scene has not been appropriately covered. We can use the total uncertainty of a camera angle as a measure of it's importance.
 
-Stochastic Poisson surface reconstruction ([Sellán and Jacobson](https://arxiv.org/abs/2208.09865), reformulated by [Holden et al.](https://arxiv.org/abs/2502.09071)) treats the same problem as inference rather than optimisation. The output is a Gaussian process over $\tilde{\chi}$, so each point in space has a mean and a variance, where the mean is analogous to the $\tilde{\chi}$ reconstructed by PSR.
-
-The variance gives the fifth property. Integrating the probability that a point is misclassified over the domain gives a total uncertainty, which decreases as the scan improves and can be used to decide when to stop gathering views. Applied along a camera ray, the range of distances at which the surface could lie measures the uncertainty a candidate view would resolve, which ranks views.
+Stochastic Poisson surface reconstruction ([Sellán and Jacobson](https://arxiv.org/abs/2208.09865), reformulated by [Holden et al.](https://arxiv.org/abs/2502.09071)) reformulates PSR. The output is a Gaussian process over $\tilde{\chi}$, so each point in space has a mean and a variance, where the mean is analogous to the $\tilde{\chi}$ reconstructed by PSR. Integrating the probability that a point is misclassified over the domain gives a total uncertainty.
 
 <Image src={`${props.assetsUrl}imgs/view-ranking.png`} width={960} height={960}>
   Candidate poses on the drum scene coloured by the surface uncertainty each captures, with green being more certain. The back of the kit was not covered by the input views.
 </Image>
-
-We used this ranking to choose training views during 3DGS optimisation. Convergence was faster over early iterations than with a shuffling strategy, and the difference disappeared once every view had been seen several times.
 
 # Further Reading
 
