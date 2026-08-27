@@ -5,6 +5,8 @@ const nextConfig: NextConfig = {
   distDir: 'dist',
   reactStrictMode: true,
   transpilePackages: ['@patricklbell/mdx'],
+  // sharp is a native module; keep it out of the bundler.
+  serverExternalPackages: ['sharp'],
   images: { unoptimized: true },
 };
 

@@ -1,11 +1,10 @@
 An unnamed systems programming language designed around versatility and simplicity. The language is a work in progress, currently the compiler produces standalone executables for basic programs (functions, operators, primitive types) using an LLVM backend.
 
-# Ideas
+Here are some snippets which demonstrate the ideas for the language.
 
-Here is an example file which demonstrates some of the ideas for the language.
+## Structure, enum and union types
 
 ```C
-// structure, enum and union types
 Node : struct {
 	type : NodeType,
 };
@@ -33,13 +32,22 @@ Value : union {
     f : float,
     i : int,
 };
+```
 
-// builtin types
+## Builtin types
+
+```C
 A : ptr;
 B : buffer[int, #10];
+```
 
-// later we can define pointer types with generic types and overloading
+## Pointer types
+
+Later we can define pointer types with generic types and overloading.
+
+```C
 ptr[x] : ptr;
+
 /*ptr[x] + int : (l: ptr[x], r: int) -> ptr[x] = {
     size := #type[x]().size;    // # means calculate at compile time
 	return ptr + size*r;        // we need to use size at run-time so don't # it
@@ -52,12 +60,21 @@ print_node : (node: ptr[Node]) -> void = {
 		print("minus");
 	}
 }
+```
 
-// generic function
+
+## Generic functions
+
+```C
 add_value[Key, Value] : (map: HashMap[Key, Value], key: Key, value: Value) -> void = {
+    /* implementation */
 }
+```
 
-// generic types
+
+## Generic types
+
+```C
 vec[ct: Numericals, num: int = #3] : type[#create_vec_type[ct](num)];
 
 create_vec_type[ct] : (ct: Type, num: int) -> StructType = {
@@ -75,23 +92,34 @@ create_vec_type[ct] : (ct: Type, num: int) -> StructType = {
 vec3[ct : Numericals = float] : vec[ct];
 vec4[ct : Numericals = float] : vec[ct, #4];
 vec2[ct : Numericals = float] : vec[ct, #2];
+```
 
-// meta-types
-//Numericals : [int, float, NodeType]; // enum is redundant here since it reduces to an int
-//ComposesNode : [Node]; // cannot mix struct and primitive / enum types
 
-// operator overloading
-/*vec3[x] + vec3[y] : (l: vec3[x], r: vec3[y]) -> vec3[x] = {
+## Meta-types
+
+```C
+Numericals : [int, float, NodeType]; // enum is redundant here since it reduces to an int
+ComposesNode : [Node]; // cannot mix struct and primitive / enum types
+```
+
+
+## Operator overloading
+
+```C
+vec3[x] + vec3[y] : (l: vec3[x], r: vec3[y]) -> vec3[x] = {
 	return vec3[x]{
 		x = l.x + r.x,
 		y = l.y + r.y,
 		z = l.z + r.z,
 	}
-}*/
+}
+```
 
-// example 1:
-// rtti (run time type information)
-//Structs : [struct];
+# Examples
+## Example 1: run time type information (RTTI)
+
+```C
+Structs : [struct];
 RTTI[t: Structs] : type[#add_rtti_to_type(t)];
 
 add_rtti_to_type : (type: Type) -> Type = {
@@ -122,21 +150,23 @@ Player : RTTI[struct {
     ...Actor,
     unlocks : int,
 }];
+```
 
-// example 2:
-// rust-style optional
+## Example 2: rust-style optional
+
+```C
 Optional[x] : ptr[x];
 ResolvedOptional[x] : Exclude[Optional[x], type[#nullptr]];
 
 // disallow implicit and explicit casting
-/*(y)Optional[x] : (this: Optional[x]) -> ptr[x] = {
+(y)Optional[x] : (this: Optional[x]) -> ptr[x] = {
     #assert(false);
 }
 
 // allow casting for the resolved type
 (y)ResolvedOptional[x] : (this: Optional[x]) -> ptr[x] = {
     return (ptr[x])this;
-}*/
+}
 
 example_function : (x: int) -> Optional[int] = {
     if (x == 1) {
@@ -158,9 +188,11 @@ test_example_function : () -> void = {
         print(*res);
     }
 }
+```
 
-// example 3:
-// struct-based optional
+## Example 3: struct-based optional
+
+```C
 Check[x] : struct {
     error   : string,
     res     : x,
@@ -175,7 +207,7 @@ get_member_type[t] : (name: string) -> Type = {
     return get_member(type[t]().members, name);
 }
 
-/*Check[x].y : (this: Check[x]) -> type[#get_member_type[Check[x]](y)] = {
+Check[x].y : (this: Check[x]) -> type[#get_member_type[Check[x]](y)] = {
     #assert(y != "res");
     return this.y;
 }
@@ -183,7 +215,7 @@ get_member_type[t] : (name: string) -> Type = {
 ResolvedCheck[x].y : (this: ResolvedCheck[x]) -> Check[x].[y] = {
     // note that inside overloads, all user-overloads are ignored
     return this.y;
-}*/
+}
 
 function_to_check : () -> Check[int] = {
     return struct Check[int] {
@@ -202,25 +234,25 @@ test_check : () -> void = {
         print(some_result.res);
     }
 }
+```
 
-// example 4:
-// constructor and destructor
+## Example 4: constructor and destructor
 
-// @module, @private, @scoped, etc...?
+```C
+// @module, @private, @scoped, etc...
 File : struct {
     unix_file_pointer : ptr,
 };
 
 // destructor
-/*~File : (file: File) -> void = {
+~File : (file: File) -> void = {
     if (file.unix_file_pointer != nullptr) {
         fclose(file.unix_file_pointer);
     }
-}*/
+}
 
 // constructor, combined with limiting File
-// access (eg. @private) this is equiv. but
-// with you can also return errors.
+// access (eg. @private) this is equiv.
 open_file : (name: string) -> Check[File] = {
     file := struct File {
         unix_file_pointer = fopen(name),
@@ -237,9 +269,11 @@ open_file : (name: string) -> Check[File] = {
         res = file,
     };
 }
+```
 
-// example 5:
-// "polymorphism"
+## Example 5: "polymorphism"
+
+```C
 Furniture : struct {
     sit : ptr[(this: ptr[this]) -> void],
 };
@@ -275,6 +309,7 @@ test_polymorphism : () -> void = {
 
     // should print "He loved sitting on it"
     (*(ptr_to_furniture->sit))();
+    // or just
+    ptr_to_furniture->sit();
 }
-
 ```

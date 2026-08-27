@@ -2,6 +2,7 @@ import { evaluate } from '@mdx-js/mdx'
 import * as runtime from 'react/jsx-runtime'
 import rehypeHighlight from 'rehype-highlight';
 import rehypeMathJaxCHtml from 'rehype-mathjax/chtml';
+import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import { components } from './components';
 
@@ -19,6 +20,8 @@ export async function MDX({ source, baseUrl, ...props }: MDXProps) {
         ...runtime,
         baseUrl: baseUrl,
         remarkPlugins: [
+            // Tables, strikethrough and footnotes are not in core MDX.
+            remarkGfm,
             remarkMath
         ],
         rehypePlugins: [

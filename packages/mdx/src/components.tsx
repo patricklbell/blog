@@ -19,9 +19,26 @@ export const components: MDXComponents = {
         return <ArticleBlock className='col-start-1 col-span-12 italic text-gray-800'><span {...props} /></ArticleBlock>
     },
     pre({ className, ...props }) {
-        return <ArticleBlock><pre className={cn('border rounded-lg font-mono p-2 overflow-x-auto')} {...props} /></ArticleBlock>
+        return <ArticleBlock>
+            {/* tabIndex makes the scroll region reachable without a pointer. */}
+            <pre
+                tabIndex={0}
+                className={cn(
+                    'border rounded-lg font-mono p-2 overflow-x-auto',
+                    // Code keeps its lines intact and scrolls; it must not pick up
+                    // the wrapping applied to inline code below.
+                    '[&_code]:whitespace-pre [&_code]:break-normal',
+                    className,
+                )}
+                {...props}
+            />
+        </ArticleBlock>
     },
-    code: 'code',
+    code({ className, ...props }) {
+        // Inline code is often a single long identifier, which has nowhere to
+        // break on a narrow screen unless it is allowed to break anywhere.
+        return <code className={cn('break-words', className)} {...props} />
+    },
     h1({ className, ...props }) {
         return <ArticleBlock><h2 className={cn('text-[1.68rem] mt-10 mb-1')} {...props} /></ArticleBlock>
     },
@@ -52,6 +69,26 @@ export const components: MDXComponents = {
     },
     br: 'br',
     img: 'img',
+    table({ className, ...props }) {
+        // The wrapper scrolls, not the page: a table with more columns than the
+        // column is wide must not widen its grid cell (see ArticleBlock).
+        return <ArticleBlock className='my-6'>
+            <div tabIndex={0} className='overflow-x-auto'>
+                <table className={cn('w-full border-collapse text-[0.95em]', className)} {...props} />
+            </div>
+        </ArticleBlock>
+    },
+    thead: 'thead',
+    tbody: 'tbody',
+    tr({ className, ...props }) {
+        return <tr className={cn('border-b last:border-b-0', className)} {...props} />
+    },
+    th({ className, ...props }) {
+        return <th className={cn('text-left font-medium align-bottom py-2 pr-6 last:pr-0', className)} {...props} />
+    },
+    td({ className, ...props }) {
+        return <td className={cn('text-left align-top py-2 pr-6 last:pr-0', className)} {...props} />
+    },
     Image: ArticleImage,
     "mjx-container"({ className, ...props }) {
         return React.createElement(

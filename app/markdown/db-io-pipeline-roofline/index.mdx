@@ -1,0 +1,168 @@
+
+> This article was inspired by [AMD's dependency analysis for LLM decode](https://rocm.blogs.amd.com/software-tools-optimization/gluon-attention-decode-mi450/README.html).
+> It assumes familiarity with databases and systems programming. It discusses how NVMe queue depth interacts with database design decisions.
+
+Processors have been getting faster for decades. Unfortunately the time to read and write a file has not kept up. A modern non-volatile memory (NVM) drive answers a single 4 KiB random read in [tens of microseconds](https://www.digitalcitizen.life/nvme-queue-depth-explained-why-it-matters-for-real-world-ssd-performance/), a thousand times slower than loading the same data from volatile memory.
+
+> Non-volatile memory includes devices such as solid state drives (SSD), M.2 cards and hard disk drives.
+
+Databases are asked to hide this gap. We are going to design one that responds to requests quickly (low latency) and handles many requests at once (high throughput) using a simplified model of NVM drives. We discuss why to shard per core, how to choose a storage format, and how to pipeline requests. We finish with a brief discussion of a request's latency distribution.
+
+<Image src={`${props.assetsUrl}imgs/latency-scales.svg`}>
+  Approximate service times, log scale.
+</Image>
+
+# The Database API
+
+For the purposes of this article we are going to assume Cassandra's [CQL interface](https://cassandra.apache.org/doc/6.0-alpha2/index.html). It looks like SQL but is more restrictive, specifically:
+
+- Rows are divided into **partitions**, identified by a **partition key** (a partition contains multiple rows).
+- Rows within a partition are stored in order of the **clustering key**.
+- Normal reads and writes name a single **partition key**.
+- There are no joins or foreign keys (schemas are [denormalised](https://en.wikipedia.org/wiki/Denormalization)).
+- Secondary indexes are declared explicitly.
+
+CQL is designed this way so requests can be handled by a single [shard](https://en.wikipedia.org/wiki/Shard_(database_architecture)). Sharding divides a table's rows into groups, and different shards may be stored on distinct drives or machines. Partition keys let us route a request directly to the shard holding the relevant partition. Some requests do need data from several partitions, and potentially several shards. In this case the request is scattered among the shards and then gathered to form a final answer. [Cassandra's data modelling guide](https://cassandra.apache.org/doc/latest/cassandra/developing/data-modeling/intro.html) may be useful for understanding the implications of Cassandra's design.
+
+Constraining our database's interface allows the following analysis to be more specific, although the same factors apply to most databases.
+
+# Model of NVM Drive
+
+An NVM drive is best utilised when it holds many read or write operations at once. A drive contains many independent flash dies. Software which waits for a response before making another operation leaves most of these dies idle. The drive has a queue of operations submitted but not completed.
+
+<Image src={`${props.assetsUrl}imgs/device.svg`}>
+  Rows are dies within the NVM drive. The orange boxes on the left are number of operations in the queue. (a) Submit a single operation and wait for the response before submitting another. (b) Submit four operations at once.
+</Image>
+
+Let the average size of the queue be $C$ or the **queue depth**. Let the time to answer one operation be $L_0$ or the **unloaded latency**. At best we can complete the $C$ outstanding operations every $L_0$ seconds. This is the **latency bound**, $C/L_0$. It is dominant when the drive is mostly idle (and exact by definition when only submitting one operation).
+
+The drive also has a ceiling for how well it can parallelize. However many operations we offer, it retires at most $I_{\max}$ per second. This is the **saturation bound** and does not depend on usage.
+
+Throughput $T$ is constrained by
+
+```math
+\begin{equation*}
+T(C) \le \min\!\left(\frac{C}{L_0},\; I_{\max}\right)
+\end{equation*}
+```
+
+The two bounds cross at a queue depth called the **saturation point**.
+
+```math
+\begin{equation*}
+C^{*} = L_0 I_{\max}
+\end{equation*}
+```
+
+Below $C^{*}$ the drive is idle part of the time, and adding operations is free throughput. Above $C^{*}$ the drive is already saturated, so an arriving operation waits behind the others and latency grows in proportion to $C$.
+
+> The heavily simplified model is based on [The Operational Analysis of Queueing Network Models](https://dl.acm.org/doi/10.1145/356733.356735).
+
+## Example: Micron 7450 PRO
+
+<Image src={`${props.assetsUrl}imgs/queue-depth-throughput.svg`}>
+  Throughput for a Micron 7450 PRO under a 70/30 mix. QD1 is the operations per second at queue depth one. The grey curve is an approximation of the real drive.
+</Image>
+
+The [Micron 7450](https://assets.micron.com/adobe/assets/urn:aaid:aem:d133a40b-b36c-4b17-b768-659acc4d4bca/renditions/original/as/7450-nvme-ssd-tech-prod-spec.pdf) PRO is an enterprise NVMe drive. Its 7.68 TB E1.S model answers a 4 KiB random read in $L_0 = 80\,\mu\text{s}$ at queue depth one, and is rated at 1,000,000 reads per second at queue depth 256. If we approximate our database usage as a 70/30 blend of random reads and writes we are told to expect $I_{\max} = 415{,}000$ operations per second. From these numbers we derive from our model that
+
+```math
+\begin{equation*}
+C^{*} = 80\,\mu\text{s} \times 415{,}000\,\text{s}^{-1} = 33.
+\end{equation*}
+```
+
+We expect to be able to issue 33 operations at once before operations start to take longer. The below table illustrates these diminishing returns.
+
+# Database design
+
+## One shard per core
+
+Our model tells us that we should maximize the queue depth enough to reach the point of diminishing returns. The most straightforward way is multithreading. We divide partition ownership among threads and use the partition key to route each query. To avoid contention we have each thread own it's caches and files. If we have enough connections making requests touching different shards we can may be able to saturate the drive using this technique alone.
+
+<Image src={`${props.assetsUrl}imgs/shards.svg`}>
+  One shard per core, each owning a disjoint set of partitions. A request is routed by hashing its partition key. A request naming several partitions is split across several shards.
+</Image>
+
+We can also pin each shard to a core, which tells the operating system not to move the thread to another core. Pinning has the trade-off that a busy shard cannot use an idle core's capacity. This may cause a lower average throughput but allows more consistent latency, we will return to this trade-off when discussing tail latency.
+
+Since I/O operations are much slower than compute we don't want our threads to wait for a response. We could have a thread per request but this requires more work and memory from the OS. We instead make each request's handler into a **coroutine**: a function that can suspend part-way through, return control to the thread, and resume later from where it stopped. A request suspends it's coroutine when it submits an I/O operation and resumes when the answer arrives. Unfortunately, since we are touching the same shard's shared resources we can't simply overlap the I/O for different request coroutines, this is where pipelining will come in.
+
+## B-trees or LSM
+
+The format we store our table's rows deeply effects which I/O operations we make. We will consider two choice, B-Trees or log structured merge (LSM) trees. A [B-tree](https://www.cs.emory.edu/~cheung/Courses/554/Syllabus/3-index/B-tree=intro.html) keeps rows in one sorted structure and updates it in place. Its pages form a shallow tree in which each page holds keys and the locations of the pages below it. A [log-structured merge tree](https://en.wikipedia.org/wiki/Log-structured_merge-tree) instead keeps several sorted runs of pages, newest first, and merges them in the background (compaction). The two structures differ in how they utilize I/O.
+
+- When searching a B-tree, a parent node's page must be read before we know which child page to read.
+- When searching an LSM tree we can load multiple pages at once but we need to issue more reads in total.
+- Modifying a B-tree requires more writes up-front but compaction of an LSM tree requires more writes in total.
+
+Under this analysis the LSM tree allows more drive queue depth ($C$) per query but requires more total operations. Our goal will be that with Shard-per-core and other tricks we will already be past $C^{*}$ and so the LSM tree's extra queue depth will not be worth the increased total operations. We therefore choose a B-tree and work on increasing queue depth within a shard.
+
+## Requests Lifecycle
+
+We break read and write requests into smaller components and map the dependencies between them. This will allows us to overlap and combine operations from different queries. The analysis focuses on I/O, which dominates compute cost. Costs are approximated relative to one uncached drive read ($L_0$).
+
+| Tag | Stage | I/O | Cost |
+| --- | --- | --- | --- |
+| `nw` | read the request frame from the socket | usually one receive | 1 to 3 |
+| `pt`<sub>i</sub> | descend one level of the partition or clustering tree | one read | 1 or cached |
+| `rw` | read the row/s the leaf points at | usually one read | ~1 (batched) |
+| `ix`<sub>i</sub> | descend one level of one secondary index | one read | 1 or cached |
+| `wa` | append the whole transaction to the log | one sequential write, sized by the pages dirtied | ~1 (batched) |
+| `fl` | flush the log to durable media | one barrier | ~35 or ~0 with power-loss protection |
+| `rs` | write the response frame | usually one send | 1 to 3 |
+| `ck` | write the dirtied pages back to the data file | one write per page, deferred | ~1 per page |
+
+Write $d$ for the length of the longest chain of dependent I/O operations and $n$ for the total number of I/O operations. A request's latency depends on $d$, the request throughput throughput depends on $n$. The diagrams below show example paths for a read and a write request respectively.
+
+<Image src={`${props.assetsUrl}imgs/read-dag.svg`}>
+  A read of one row. Every stage waits on the one above it, so $d = n = 4$. This single-row read cannot contribute to $C$ without pipelining.
+</Image>
+
+<Image src={`${props.assetsUrl}imgs/write-dag.svg`}>
+  A write against a table with a clustering key and two secondary indexes, one of them a level deeper than the other. The longest chain runs through the deeper index, giving $d = 6$. Counting the log append and the deferred page writes, $n = 9$.
+</Image>
+
+The steps have the following relationships:
+- **`nw` and `rs` are independent per connection.**
+- **`pt`<sub>i</sub> is irreducible.** A page must be read before we know which page follows it.
+- **`rw` can be batched and parallelized.** Adjacent rows and overflow pages are laid out in order, so they can be issued together.
+- **`ix`<sub>i</sub> requires `rw`.** Removing the stale index entry requires the *old* column value.
+- **`ix`<sub>i</sub> needs a global lock.** An index has a global lock which covers every partition, so two requests on different partitions contend for the index.
+- **`wa` can be submitted in parallel with the transaction**
+- **`ck` must follow `fl`.** If a page reached the data file before the log covering it was durable, a crash between the two would leave a partially updated file and no record with which to repair it.
+- **`ck` is otherwise unconstrained.** Once the log is durable the pages may be written at any time.
+
+### Pipelining Between Requests
+
+Two read requests naming different partitions can naturally interleave without coordination. We ensure that a thread does not lock on read and ensure that our clients take advantage by opening multiple connections. Unfortunately we can't pipeline write requests to ensure our tree remains in a consistent state. This means stalling on writes.
+
+We can also trivially pipeline the network calls. The write ahead log can also be pipelined but since we still need to commit before returning to ensure durability. we instead batch with a limit on the number of batched requests.
+
+# Tail latency
+
+It was mentioned earlier that sometimes we may trade lower average latency for consistency (low variance).
+
+<Image src={`${props.assetsUrl}imgs/tail.svg`}>
+  Two database engines with different latency distributions. The bursty engine has a lower mean latency but a much higher $p_{99}$ latency.
+</Image>
+
+We reduced variance by:
+- Pinning shards to cores.
+- Choosing B-trees as our storage format.
+
+On the other hand we increased variance by:
+- Batching flushes across requests
+
+There is a trade-off between variance and mean, similar to the trade-off between memory and compute. Our database design allows us to tune this trade-off by, for example, changing the flush batch size.
+
+> The database design we justified is [plexdb](https://github.com/patricklbell/plexdb), an experimental database which supports the CQL interface. It is shard-per-core and coroutine-driven, stores rows in B-trees, and pipelines and batches I/O.
+
+# Further reading
+- [An In-Depth Overview of NVMe and NVMe-oF](https://infohub.delltechnologies.com/en-uk/t/an-in-depth-overview-of-nvme-and-nvme-of/)
+- Lazowska, Zahorjan, Graham and Sevcik, [Quantitative System Performance](https://homes.cs.washington.edu/~lazowska/qsp/). Chapter 5 derives the asymptotic bounds and the saturation point used above.
+- Denning and Buzen, [The Operational Analysis of Queueing Network Models](https://dl.acm.org/doi/10.1145/356733.356735). The paper the bounds come from.
+
+{/* TODO(measure): a latency-throughput curve for a real engine, swept by client concurrency, on a drive whose L0 and Imax are known. Overlay the predicted C*. This is the figure that tests the article's central claim and there is currently no measurement in the piece at all. */}
+
+{/* TODO(measure): observed device queue depth (iostat -x, aqu-sz) under load, against offered concurrency. Shows whether the engine actually reaches C* or discards it in one of the three ways above. Cheapest experiment here by a wide margin. */}

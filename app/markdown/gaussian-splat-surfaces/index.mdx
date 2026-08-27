@@ -1,0 +1,157 @@
+3D Gaussian splatting (3DGS) reconstructs a scene from a set of photographs as a collection of Gaussians, which are alpha blended to synthesise new views. The Gaussians are optimised against a photometric loss, so nothing in the algorithm constrains them to lie on the scene's surfaces. Recovering the surfaces is useful for occlusion and collision queries, and for using the reconstruction in tools which expect a mesh.
+
+Poisson surface reconstruction (PSR) reconstructs a surface from a point cloud with normals. This article explains what PSR requires of that point cloud, why the Gaussians do not satisfy those requirements directly, and how to sample them so that they do. The notation follows [Kazhdan et al.](https://hhoppe.com/poissonrecon.pdf), which describes PSR in full.
+
+# Poisson Surface Reconstruction
+
+Define the model as $M$ with surface $\partial M$, and an indicator function $\chi_M$ which is $1$ inside the model and $0$ outside. PSR does not fit $\partial M$ directly. It reconstructs $\chi_M$ and then extracts $\partial M$ as a level set.
+
+<Image src={`${props.assetsUrl}imgs/indicator.svg`}>
+  (a) the samples, each with an inward normal. (b) the indicator function reconstructed from them. (c) the surface, a level set of the indicator function.
+</Image>
+
+The gradient of $\chi_M$ is zero everywhere except at the surface, where it is the inward normal. This is a distribution rather than a function, but convolving with a smoothing filter $\tilde{F}$ gives
+
+```math
+    \begin{equation*}
+        \nabla (\chi_M * \tilde{F})(q) = \int_{\partial M} \tilde{F}_p(q)\, \vec{N}_{\partial M}(p)\; dp
+    \end{equation*}
+```
+
+so a set of normals sampled over $\partial M$ is a set of gradients of a smoothed indicator function.
+
+The input to the algorithm is $S$, a noisy sample of the surface's normals, where each sample $s \in S$ has a position $s.p$ and an inward normal $s.\vec{N}$. Replacing the integral with a sum over the surface patch $\mathcal{P}_s$ which each sample represents gives a vector field
+
+```math
+    \begin{equation*}
+        \vec{V}(q) \equiv \sum_{s \in S} |\mathcal{P}_s|\, \tilde{F}_{s.p}(q)\, s.\vec{N}.
+    \end{equation*}
+```
+
+$\vec{V}$ is assembled from independent samples, so in general it is not the gradient of any function. Taking the least squares closest $\chi$ gives Poisson's equation. The surface is the level set at the isovalue the samples themselves take,
+
+```math
+    \begin{equation*}
+        \begin{aligned}
+        \Delta \tilde{\chi} &= \nabla \cdot \vec{V}, \\
+        \gamma &= \frac{1}{|S|}\sum_{s \in S} \tilde{\chi}(s.p), \qquad
+        \partial M \approx \{\, q \mid \tilde{\chi}(q) = \gamma \,\}.
+        \end{aligned}
+    \end{equation*}
+```
+
+## Requirements on the Samples
+
+Four properties of $S$ follow from these equations.
+
+- **Each sample has a normal.** $\vec{V}$ is defined in terms of $s.\vec{N}$.
+- **Normals are consistently oriented.** The sign of $s.\vec{N}$ determines which side of a sample is interior to the model.
+- **Samples lie on the surface.** Zero mean noise in $s.p$ is averaged out by $\tilde{F}$, but a bias displaces the reconstructed surface.
+- **Sample density follows surface area.** The weight $|\mathcal{P}_s|$ is what makes the sum an estimate of the integral. Without it a region contributes to $\vec{V}$ in proportion to the number of samples it contains rather than its area.
+
+<Image src={`${props.assetsUrl}imgs/contract.svg`}>
+  Grey is the true surface and red is the reconstruction. (a) one normal is flipped. (b) samples are concentrated on one arc and $|\mathcal{P}_s|$ is constant. (c) samples are displaced off the surface.
+</Image>
+
+A fifth property is not visible in the equations. $\tilde{\chi}$ is defined over the whole domain, so $\partial M$ closes over regions which were never sampled, and the reconstruction does not distinguish these from regions which were. Surface uncertainty is discussed in the last section.
+
+# 3D Gaussian Splatting
+
+3DGS represents a scene as a collection of Gaussians, each parameterised by a position, rotation, scale, opacity and a set of spherical harmonic coefficients. A view is synthesised by projecting the Gaussians into screen space and alpha blending them in depth order. The parameters are optimised by gradient descent against a photometric loss between the synthesised and source views. An adaptive density control algorithm periodically adds Gaussians in poorly represented regions of the scene and removes them from dense or transparent ones.
+
+<Image src={`${props.assetsUrl}imgs/splat.png`} width={960} height={960}>
+  A synthetic drum scene reconstructed by 3DGS. The silhouettes are correct and the surfaces are not.
+</Image>
+
+# Sampling Normals from Gaussians
+
+The direct approach treats each Gaussian as one sample. The position $s.p$ is the Gaussian's position, and $s.\vec{N}$ is the axis of least variance, which is the direction the Gaussian is flattest along.
+
+<Image src={`${props.assetsUrl}imgs/gaussian-normals.svg`}>
+  (a) a cross section of the Gaussians near a surface, with the axis of least variance of each drawn in red. (b) the sample normals which the surface requires.
+</Image>
+
+This fails each of the four requirements.
+
+- A Gaussian close to spherical has no well defined axis of least variance, and the photometric loss does not penalise one.
+- The axis of least variance is an axis rather than a direction, so the sign of $s.\vec{N}$ is undetermined.
+- The Gaussians are not surface aligned. They overlap and extend to either side of the surface, so their positions are biased off it. Alpha blending hides this during rendering, because a set of overlapping Gaussians and a surface can integrate to the same image.
+- $|\mathcal{P}_s|$ is undefined. Adaptive density control allocates Gaussians according to photometric error, so a large flat region may be covered by a few Gaussians and a small detailed one by many.
+
+# Sampling Normals in Image Space
+
+Each of these problems is a consequence of reading geometry from individual Gaussians. Sampling the rendered images instead avoids them, because alpha blending combines the overlapping Gaussians before the sample is taken.
+
+<Image src={`${props.assetsUrl}imgs/pipeline.svg`}>
+  The pipeline. The stages between the input views and the point cloud produce a sample set which meets the requirements of the solve.
+</Image>
+
+## Surface Aligned Gaussians
+
+[Gaussian Surfels](https://arxiv.org/abs/2404.17774) constrains each Gaussian to be flat by driving the third component of its scale to zero. A flat Gaussian has a well defined normal, which satisfies the first requirement. We use Gaussian Surfels with its additional regularisation terms removed, which simplifies comparison against the unmodified algorithm at the cost of some surface alignment.
+
+## Reconstructing Normals from Depth
+
+The scene is rendered at each input pose $i$. Normals cannot be blended directly, as neither component wise nor spherical interpolation of the Gaussians' normals produces a usable result. Depth blends well, so the normal is reconstructed from the depth map instead. The depth is back projected into a view space position map $\mathbf{X}_i$, and the normal is the cross product of central differences,
+
+```math
+    \begin{equation*}
+        \begin{aligned}
+        \mathbf{x}_u &= \tfrac{1}{2}\big(\mathbf{X}_i(u{+}1,v) - \mathbf{X}_i(u{-}1,v)\big), \\
+        \mathbf{x}_v &= \tfrac{1}{2}\big(\mathbf{X}_i(u,v{+}1) - \mathbf{X}_i(u,v{-}1)\big), \\
+        \mathbf{N}_i(u,v) &= \frac{\mathbf{x}_u \times \mathbf{x}_v}{\|\mathbf{x}_u \times \mathbf{x}_v\|}.
+        \end{aligned}
+    \end{equation*}
+```
+
+<Image src={`${props.assetsUrl}imgs/depth-normal.svg`}>
+  (a) the pixel and the four neighbours the central differences are taken across. (b) the same five pixels back projected into view space. The normal is perpendicular to both tangents.
+</Image>
+
+A pixel is only shaded by a surface facing the camera which rendered it, so $\mathbf{N}_i$ is oriented towards the camera and negated to give the inward normal. This determines the sign which was undetermined when sampling the Gaussians directly.
+
+## Masking and Downsampling
+
+The position and normal maps are downsampled with a $k \times k$ box filter, which reduces the number of samples and averages out noise. Downsampling also fixes $|\mathcal{P}_s|$. Each remaining sample is one block of pixels back projected onto the surface, so up to foreshortening the patches are equal in area, $|\mathcal{P}_s|$ is constant, and it can be dropped from $\vec{V}$.
+
+This holds only for blocks which are covered by the surface throughout. A block which straddles a silhouette back projects partly onto the surface and partly onto the background, and its average position lies off the surface. We accumulate a mask $\mathbf{A}_i$ alongside the other maps, taking the product of the alpha channel over each block rather than the mean, so that a block containing any uncovered pixel is rejected.
+
+<Image src={`${props.assetsUrl}imgs/mask.svg`}>
+  Downsampling across a silhouette. A blue dot marks a block which is kept and a red cross one which is rejected. (a) the mean keeps blocks which are mostly background. (b) the product keeps only blocks which are covered throughout.
+</Image>
+
+The samples which pass the mask are transformed into world space by $\mathbf{W}_i^{-1}$ and accumulated across the input views. Remaining outliers are rejected by comparing each sample's distance to its neighbours against the distribution over the whole point cloud, and the point cloud is downsampled spatially to bound the size of the solve.
+
+```
+S = {}
+for each input view i:
+    render depth, alpha from pose i
+    X = backproject(depth)                  # view space positions
+    N = normals from central differences of X
+    X, N = boxfilter(X, k), boxfilter(N, k)
+    A    = boxproduct(alpha, k) > 0.5       # covered throughout
+    for each (u,v) where A(u,v):
+        S += ( W_i^-1 X(u,v), -W_i^-1 N(u,v) )
+S = spatial_downsample(remove_outliers(S))
+```
+
+# Surface Uncertainty
+
+Running the solve on this point cloud gives a mesh, but it does not indicate which parts of that mesh are supported by samples.
+
+Stochastic Poisson surface reconstruction ([Sellán and Jacobson](https://arxiv.org/abs/2208.09865), reformulated by [Holden et al.](https://arxiv.org/abs/2502.09071)) treats the same problem as inference rather than optimisation. The output is a Gaussian process over $\tilde{\chi}$, so each point in space has a mean and a variance, where the mean is analogous to the $\tilde{\chi}$ reconstructed by PSR.
+
+The variance gives the fifth property. Integrating the probability that a point is misclassified over the domain gives a total uncertainty, which decreases as the scan improves and can be used to decide when to stop gathering views. Applied along a camera ray, the range of distances at which the surface could lie measures the uncertainty a candidate view would resolve, which ranks views.
+
+<Image src={`${props.assetsUrl}imgs/view-ranking.png`} width={960} height={960}>
+  Candidate poses on the drum scene coloured by the surface uncertainty each captures, with green being more certain. The back of the kit was not covered by the input views.
+</Image>
+
+We used this ranking to choose training views during 3DGS optimisation. Convergence was faster over early iterations than with a shuffling strategy, and the difference disappeared once every view had been seen several times.
+
+# Further Reading
+
+- Kazhdan, Bolitho and Hoppe, [Poisson Surface Reconstruction](https://hhoppe.com/poissonrecon.pdf).
+- Kerbl et al., [3D Gaussian Splatting for Real-Time Radiance Field Rendering](https://arxiv.org/abs/2308.04079).
+- Dai et al., [High-quality Surface Reconstruction using Gaussian Surfels](https://arxiv.org/abs/2404.17774).
+- Sellán and Jacobson, [Stochastic Poisson Surface Reconstruction](https://arxiv.org/abs/2208.09865).

@@ -1,14 +1,16 @@
 import { markdownManager } from "@/lib/markdownManager";
 import { ArticleCard } from "./ArticleCard";
 
-const NUM_NEWS_PAGES = 3;
+/* The third tile only fits from md up, so mobile shows one less. */
+export const NUM_NEWS_PAGES_SM = 2;
+export const NUM_NEWS_PAGES_MD = 3;
 
 export const RecentNews = () => {
     const articlesSortedByRecency = markdownManager.getArticles();
-    if (articlesSortedByRecency.length < NUM_NEWS_PAGES)
+    if (articlesSortedByRecency.length < NUM_NEWS_PAGES_MD)
         return <></>
 
-    const newsPages = articlesSortedByRecency.slice(0, NUM_NEWS_PAGES);
+    const newsPages = articlesSortedByRecency.slice(0, NUM_NEWS_PAGES_MD);
     return <section className="w-full max-w-container flex flex-col gap-16">
         <div className="flex flex-col items-center">
             <span className="text-base mb-1 tracking-wide">Home</span>
@@ -22,7 +24,7 @@ export const RecentNews = () => {
             <div className="col-start-1 col-end-13 md:col-start-1 md:col-end-7 md:row-start-3 md:row-span-1">
                 <ArticleCard className="md:aspect-video" priority slug={newsPages[1]} />
             </div>
-            <div className="hidden md:block md:col-start-7 md:col-end-13 md:row-start-3 md:row-span-1">
+            <div className="max-md:!hidden md:col-start-7 md:col-end-13 md:row-start-3 md:row-span-1">
                 <ArticleCard className="md:aspect-video" priority slug={newsPages[2]} />
             </div>
         </div>

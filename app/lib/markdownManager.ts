@@ -24,7 +24,12 @@ export interface ArticleMetadata extends MarkdownMetadata {
     codeLink?: string;
     demoLink?: string;
     headerAssetRelativePath: string;
-    headerLoadingColor: string;
+    /**
+     * Colour shown behind the header while it loads. Defaults to the average
+     * colour of the header image itself, computed at build time; set this only
+     * to deliberately depart from it.
+     */
+    headerLoadingColor?: string;
     type: 'article';
 }
 
@@ -55,6 +60,16 @@ class MarkdownManager {
             headerAssetRelativePath: "header.jpg",
         } as const
         this.ARTICLES = {
+            "db-io-pipeline-roofline": {
+                ...defaultArticleMetadata,
+                src: '/app/markdown/db-io-pipeline-roofline/index.mdx',
+                title: "Designing a Database for Non Volatile Memory",
+                description: "Designing a high performance NoSQL database using a analytical model of NVM drive throughput.",
+                publishedTime: new Date(2026, 7, 16),
+                author: "Patrick Bell",
+                tags: ["databases", "IO", "pipelining", "roofline", "plexdb"],
+                codeLink: "https://github.com/patricklbell/plexdb",
+            },
             "visualising-proteins": {
                 ...defaultArticleMetadata,
                 src: '/app/markdown/visualising-proteins/index.mdx',
@@ -63,10 +78,9 @@ class MarkdownManager {
                 publishedTime: new Date(2022, 7, 5),
                 lastModified: new Date(2024, 10, 19),
                 author: "Patrick Bell",
-                tags: ["3D Graphics", "WebAssembly", "Spline", "Computational biology"],
+                tags: ["graphics", "ribbon diagram", "spline", "computational biology", "bioinformatics"],
                 codeLink: "https://github.com/patricklbell/chemical_visualizer",
                 demoLink: "https://patricklbell.github.io/chemical-visualizer/",
-                headerLoadingColor: "#57473E",
             },
             "visualising-graphics-engines": {
                 ...defaultArticleMetadata,
@@ -75,9 +89,8 @@ class MarkdownManager {
                 description: "A frame analysis of my own engine, showing the effects of each render and effect pass.",
                 publishedTime: new Date(2022, 11, 27),
                 lastModified: new Date(2024, 10, 19),
-                tags: ["3D Graphics", "OpenGL", "Post Processing"],
+                tags: ["graphics", "post processing", "shadow mapping", "lighting"],
                 codeLink: "https://github.com/patricklbell/3d_engine",
-                headerLoadingColor: "#5F3F28",
             },
             "kidney-vasculature-nn": {
                 ...defaultArticleMetadata,
@@ -86,9 +99,8 @@ class MarkdownManager {
                 description: "Using machine learning to identify veins from microscope slides of kidney cells.",
                 publishedTime: new Date(2023, 8, 2),
                 lastModified: new Date(2024, 10, 19),
-                tags: ["Machine Learning", "Image Segmentation"],
+                tags: ["machine learning", "image segmentation", "computer vision", "ai"],
                 codeLink: "https://github.com/patricklbell/HuBMAP",
-                headerLoadingColor: "#A48261",
             },
             "pbr-physics": {
                 ...defaultArticleMetadata,
@@ -98,29 +110,38 @@ class MarkdownManager {
                 publishedTime: new Date(2023, 8, 23),
                 lastModified: new Date(2024, 10, 19),
                 author: "Patrick Bell",
-                tags: ["Rendering", "PBR", "Optics"],
-                headerLoadingColor: "#726A58",
+                tags: ["graphics", "PBR", "optics"],
             },
-            // "poisson-surface-reconstruction": {
+            // "gaussian-splat-surfaces": {
             //     ...defaultArticleMetadata,
-            //     src: "/app/markdown/poisson-surface-reconstruction/index.mdx",
-            //     title: "Poisson Surface Reconstruction",
-            //     description: "Explanation of Poisson surface reconstruction.",
-            //     publishedTime: new Date(2025, 4, 16),
-            //     lastModified: new Date(2025, 4, 16),
-            //     tags: ["3D Graphics", "Surface Reconstruction"],
+            //     src: "/app/markdown/gaussian-splat-surfaces/index.mdx",
+            //     title: "Extracting Surfaces from Gaussian Splats",
+            //     description: "What Poisson surface reconstruction demands of its input, and how to sample 3D Gaussians so that they supply it.",
+            //     publishedTime: new Date(2026, 7, 16),
+            //     lastModified: new Date(2026, 7, 16),
+            //     author: "Patrick Bell",
+            //     tags: ["graphics", "computer vision", "surface reconstruction", "Poisson surface reconstruction", "3D Gaussian splatting", "3DGS", "novel view synthesis"],
             //     headerLoadingColor: "#726A58",
             // },
+            "rasterization": {
+                ...defaultArticleMetadata,
+                src: "/app/markdown/rasterization/index.mdx",
+                title: "Rasterization",
+                description: "How to create a Direct3D and Vulkan specification conformant rasterization algorithm.",
+                publishedTime: new Date(2026, 7, 15),
+                lastModified: new Date(2026, 7, 15),
+                author: "Patrick Bell",
+                tags: ["graphics", "rasterization", "scanline", "fixed point", "vulkan", "direct3d", "conformance"],
+            },
             "unnamed-lang": {
                 ...defaultArticleMetadata,
                 src: "/app/markdown/unnamed-lang/index.mdx",
-                title: "Introducing μLang",
+                title: "μLang",
                 description: "Systems programming language using LLVM backend.",
                 publishedTime: new Date(2025, 7, 2),
-                lastModified: new Date(2025, 9, 25),
+                lastModified: new Date(2026, 7, 16),
                 codeLink: "https://github.com/patricklbell/unnamed-lang",
-                tags: ["Systems Programming", "Programming Languages"],
-                headerLoadingColor: "#7787b8",
+                tags: ["programming languages", "hobby languages", "ulang"],
             },
             "xpbd-sat": {
                 ...defaultArticleMetadata,
@@ -184,6 +205,13 @@ class MarkdownManager {
         });
 
         this.PROJECTS = {
+            "plexdb": {
+                "title": "PlexDB",
+                "description": "Database management system",
+                "children": [
+                    {slug: "db-io-pipeline-roofline"}
+                ]
+            },
             "xpbd": {
                 "title": "XPBD",
                 "description": "Physics engine",
@@ -205,14 +233,14 @@ class MarkdownManager {
                     {slug: "visualising-proteins"},
                 ]
             },
-            "labyrinth": {
-                "title": "Labyrinth",
-                "description": "Graphics engine and level editor",
-                "children": [
-                    {slug: "visualising-graphics-engines"},
-                    {slug: "pbr-physics"},
-                ]
-            }
+            // "labyrinth": {
+            //     "title": "Labyrinth",
+            //     "description": "Graphics engine and level editor",
+            //     "children": [
+            //         {slug: "visualising-graphics-engines"},
+            //         {slug: "pbr-physics"},
+            //     ]
+            // }
         };
 
         this.ARTICLE_TO_PROJECT = {};

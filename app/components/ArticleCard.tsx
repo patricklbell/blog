@@ -1,4 +1,5 @@
 import { markdownManager } from "@/lib/markdownManager";
+import { getHeaderColor } from "@/lib/headerColor";
 import { PageCard } from "./PageCard";
 
 interface ArticleCardProps {
@@ -7,7 +8,14 @@ interface ArticleCardProps {
     priority?: boolean;
 }
 
-export const ArticleCard = ({ slug, className, priority }: ArticleCardProps) => {
+export const ArticleCard = async ({ slug, className, priority }: ArticleCardProps) => {
     const meta = markdownManager.getArticle(slug);
-    return <PageCard href={meta.url} className={className} priority={priority} {...meta} />
+    const headerLoadingColor = meta.headerLoadingColor ?? await getHeaderColor(meta.imageUrl);
+    return <PageCard
+        href={meta.url}
+        className={className}
+        priority={priority}
+        {...meta}
+        headerLoadingColor={headerLoadingColor}
+    />
 };

@@ -1,0 +1,223 @@
+
+> This article was inspired by [AMD's dependency analysis for LLM decode](https://rocm.blogs.amd.com/software-tools-optimization/gluon-attention-decode-mi450/README.html).
+
+Processor have gotten faster for decades, unfortunately the time to read and write to a file has not kept up. A modern non-volatile memory (NVM) drive answers a single 4 KiB random read in [tens of microseconds](https://www.digitalcitizen.life/nvme-queue-depth-explained-why-it-matters-for-real-world-ssd-performance/), 1000x slower than load the same data from volatile memory.
+
+> Non volatile memory is also called persistent memory and includes devices such as solid state drives and M.2 cards.
+
+<Image src={`${props.assetsUrl}imgs/latency-scales.svg`}>
+  Approximate service times, log scale.
+</Image>
+
+Databases are asked to hide this increasing gap. We are going to a database which can consistently respond to requests quickly and can handle many requests at once. We start by defining the software interface for our database and briefly explaining how the choice of interface is important. We then build a simplified model of NVMe device throughput. We use the interface and hardware model to justify a storage format, optimize the request data path, and reduce tail latency. We finish with advice for software looking to best take advantage of hardware.
+
+# The Software Interface
+
+We are going to assume Cassandra's [CQL interface](https://cassandra.apache.org/doc/6.0-alpha2/index.html). If you are familiar with [SQL](https://en.wikipedia.org/wiki/SQL), CQL looks similar but is more restrictive, specifically:
+
+- Rows are divided into **paritions**, identified by a **partition key** (a partition contains multiple rows).
+- Rows within a partition are stored in order of the **clustering key**.
+- Normal reads and writes name a single **partition key**.
+- There are no joins or foreign keys (schemas are [denormalized](https://en.wikipedia.org/wiki/Denormalization)).
+- Secondary indexes are declared explicitly.
+
+CQL is designed this way so requests can (usually) be handled by a single [shard](https://en.wikipedia.org/wiki/Shard_(database_architecture)). Sharding divides a table's rows into groups called shards. Different shards may be stored on distinct drives or machines. Paritioning keys allow us to route request directly to a shard which holds the relevant partition. Certain requests do require data from several partitions (potentially multiple shards), in this case the request can be scattered among the shards and then gathered to form a final answer.
+
+### CQL Example 
+This example illustrates a table with partition key `customer_id` with clustering key `order_date, order_id`.
+
+```sql
+CREATE TABLE orders_by_customer (
+    customer_id UUID,
+    order_date TIMESTAMP,
+    order_id UUID,
+    total DECIMAL,
+    PRIMARY KEY ((customer_id), order_date, order_id)
+);
+```
+
+We might query this table as
+```sql
+SELECT * FROM orders_by_customer WHERE customer_id = ?;
+```
+
+# The Hardware
+
+Along with the usual considerations for high performance code, there are two properties that are especially relevant to modern hardware.
+
+- **Sharing data between cores can be expensive.** Two cores in the same processor do not access memory unformly. This means accessing state in a separate thread, even without a lock or contention, can have a higher cost than memory on the same thread. This is called non-uniform memory access (NUMA).
+- **A drive is best utilized when it has many concurrent memory requests.** NVMe flash memory contain multiple "dies". If we issue multiple requests they are internally assigned to queues which the drive can proccess concurrently.
+
+<Image src={`${props.assetsUrl}imgs/device.svg`}>
+  Model of an NVMe drive. Rows are dies within the drive. The strip on the left is the queue of requests submitted but not yet answered, and its length is the *queue depth*. At depth one (a) a single chip is active and the rest are idle. At depth four (b) the same hardware is fully occupied.
+</Image>
+
+I highlight these factors because they will influence the design but it is important to keep things in perspective. For example, an application which pins threads to cores to avoid non uniform memory access may actually perform worse because slow threads cannot be moved to under-utilized cores. Our design should also consider these kinds of hazards.
+
+## Simplified model of non volatile memory throughput
+
+We can quantify the throughput of non volatile memory. Suppose the drive answers a request in $L_0$ seconds when its queue is empty, and that we keep $C$ requests in the queue at all times. A request now has to wait for the $C - 1$ requests ahead of it. The drive retires at most $I_{\max}$ requests per second. Hence, in $L(C)$ seconds the drive answers $C$ requests where
+
+```math
+\begin{equation*}
+L(C) = L_0 + \frac{C - 1}{I_{\max}}
+\end{equation*}
+```
+
+If $P$ is the number of rows per request then the throughput in rows per second
+
+```math
+\begin{equation*}
+T = \frac{P\,C}{L(C)}.
+\end{equation*}
+```
+
+Under this analysis, a larger $P$ directly increases throughput. The effect of changing $C$ on throughput is less clear. When $C = 1$ nothing waits, and $T = P / L_0$. As $C$ grows the wait time comes to dominate $L_0$, and $T$ approaches $P\,I_{\max}$. In between, when $C = L_0 I_{\max}$ the wait time catches up with the service time.
+
+### Example: Micron 7450 Pro
+
+The [Micron 7450](https://assets.micron.com/adobe/assets/urn:aaid:aem:d133a40b-b36c-4b17-b768-659acc4d4bca/renditions/original/as/7450-nvme-ssd-tech-prod-spec.pdf) PRO is an enterprise PCIe Gen4 drive which answers a 4 KiB random read in $L_0 = 80\,\mu\text{s}$ at queue depth one, and its 7.68 TB E1.S model is rated at $I_{\max} = 415{,}000$ requests per second for a 70/30 mix of random reads and writes. We use the mixed figure as a rough estimate of our database's read/write mix (this ratio depends on the client's usage but reads are relatively faster). Assume a requests to read memory returns a single row ($P = 1$).
+
+Consider the effect of different concurrencies $C$.
+
+- **C = 1.**: $T = 1/L_0 = 12{,}500$ rows per second, 3% of what the drive can do.
+- **C = 33**: $T = 210{,}000$ rows per second, 50% of the drive, $157\,\mu\text{s}$ per request.
+- **C = 256**: $T = 369{,}000$ rows per second, 89% of the drive, $694\,\mu\text{s}$ per request.
+
+We can see that concurrency is very important but has diminishing returns.
+
+# Database design
+
+## One shard per core
+
+We divide partition ownership among threads, giving each thread its own cache and file, so that no request needs data another thread owns. Network processing divides the same way: we route each frame by hash into the owning shard's lock free queue. Throughput then scales with thread count until the drive becomes the limit.
+
+Inside a shard there is no parallelism, because there is only one thread. Each request is instead a **coroutine**: a function that can suspend part-way through, return control to the thread, and resume later from where it stopped. A request suspends when it submits an I/O and resumes when the answer arrives. One thread can therefore have many requests waiting on the drive while executing only one of them. Parallelism comes from the number of shards, and the requests in flight within a shard from the number of coroutines.
+
+<Image src={`${props.assetsUrl}imgs/shards.svg`}>
+  One shard per core, each owning a disjoint set of partitions. A request is routed by hashing its partition key. A request naming several partitions is split across several shards.
+</Image>
+
+We also pin each shard to a core, which tells the operating system never to move that thread elsewhere. As mentioned earlier, pinning a thread has the tradeoff that a busy shard cannot use the capacity of an idle one. We are willing to accept this cost for consistency, our average throughput may be lower but our peak latency will be lower. We return to this tradeoff in the seciton on tail latency.
+
+## B-trees or LSM
+
+We also have to choose how rows are stored. Both candidates work in **pages**, fixed-size blocks of a few kilobytes. A page is the unit the drive is asked for and the unit the engine holds in memory. Recently used pages are kept in a **cache**, so a page already in memory costs nothing to read again.
+
+A [B-tree](https://www.cs.emory.edu/~cheung/Courses/554/Syllabus/3-index/B-tree=intro.html) keeps rows in one sorted structure and updates it in place. Its pages form a shallow tree in which each page holds keys and the locations of the pages below it, so a lookup starts at the root and descends. A [log-structured merge tree](https://en.wikipedia.org/wiki/Log-structured_merge-tree) instead keeps several sorted runs of pages, newest first, and merges them in the background. The two structures differ in how much of $C$ a single request supplies on its own.
+
+- **A B-tree lookup is a chain.** A page must be read before we know which page follows it, so one request has exactly one read outstanding at a time, whatever the queue depth allows.
+- **An LSM lookup searches several runs.** The runs are separate structures, so their reads can be issued together, at the cost of more reads in total.
+- **An LSM write is cheaper immediately and more expensive later.** It appends to the newest run and does not modify the older ones. Merging runs back together rewrites the same data repeatedly.
+
+An LSM therefore supplies concurrency from within a single request, which matters when few requests are available. Shard-per-core produces the opposite condition, since each shard holds many requests at once and $C$ can be supplied from between them. We therefore choose a B-tree. Its smaller total I/O per request permits higher throughput, at the cost of a higher minimum latency for any single request, and not merging runs leaves drive capacity for requests a client is waiting on. This depends on our keeping enough requests in flight, which is the subject of the next section.
+
+## Pipelining requests
+
+We break down read and write requests into smaller components and map the dependencies between them. The analysis focuses on I/O, which dominates compute cost.
+
+| Tag | Stage | I/O |
+| --- | --- | --- |
+| <code>nw</code> | read the request frame from the socket | usually one receive |
+| <code>pt<sub>i</sub></code> | descend one level of the partition or clustering tree | one read |
+| <code>rw</code> | read the row/s the leaf points at | usually one read |
+| <code>ix<sub>i</sub></code> | descend one level of one secondary index | one read |
+| <code>wa</code> | append the whole transaction to the log | one sequential write, sized by the pages dirtied |
+| <code>fl</code> | flush the log to durable media | one barrier |
+| <code>rs</code> | write the response frame | usually one send |
+| <code>ck</code> | write the dirtied pages back to the data file | one write per page, deferred |
+
+Write $d$ for the length of the longest chain of dependent I/Os and $n$ for the total number of I/Os. A request's latency follows from $d$ and its cost to the drive from $n$. The diagrams below show the path for a read and a write request.
+
+<Image src={`${props.assetsUrl}imgs/read-dag.svg`}>
+  A read of one row, named by partition and clustering key. Every stage waits on the one above it, so $d = n = 4$.
+</Image>
+
+- **<code>nw</code> and <code>rs</code> are independent per connection.**
+- **<code>pt<sub>i</sub></code> is irreducible.** A page must be read before we know which page follows it.
+- **<code>rw</code> is parallelizable.** Adjacent rows and overflow pages are laid out in order, so they can be issued together.
+
+<Image src={`${props.assetsUrl}imgs/write-dag.svg`}>
+  A write against a table with a clustering key and two secondary indexes, one of them a level deeper than the other. The longest chain runs through the deeper index, giving $d = 6$. Counting the log append and the deferred page writes, $n = 9$.
+</Image>
+
+- **<code>pt<sub>i</sub></code> is the read's descent.** A full page is **split** in two to make room for a new entry, and the split is applied on the way down, so a write is no deeper than a read.
+- **<code>ix<sub>i</sub></code> is a descent per index.** The levels of one index are sequential, but different indexes are independent. The shallower index completes first and waits, so the longest chain is set by the deepest index.
+- **<code>ix<sub>i</sub></code> requires <code>rw</code>.** Removing the stale index entry requires the *old* column value.
+- **<code>ix<sub>i</sub></code> needs mutual exclusion.** An index covers every partition, so two requests on different partitions may update the same index page.
+- **<code>wa</code> carries the whole transaction**, so it waits on every modification. Appends from separate transactions can be combined into one write.
+- **<code>ck</code> must follow <code>fl</code>.** If a page reached the data file before the log covering it was durable, a crash between the two would leave a partially updated file and no record with which to repair it.
+- **<code>ck</code> is otherwise unconstrained.** Once the log is durable the pages may be written at any time, so their scheduling is ours to choose.
+- **<code>rs</code> follows <code>fl</code> only if the acknowledgement is durable.** Cassandra's default `commitlog_sync: periodic` replies first and flushes afterwards; `batch` waits, as drawn.
+
+$d$ counts reads that reach the drive, so it is an upper limit that assumes nothing is cached. In practice the top of the tree always is. The number of children a page can point at is its **fanout**, and it is large: PostgreSQL's 8 KiB pages hold on the order of three hundred entries, so two levels index roughly 180,000 rows and three cover [over a hundred million](https://pratikstemkar.github.io/blog/btree-indexing-in-postgresql/). The levels above the leaves therefore amount to a few hundred pages, well under a megabyte, and stay cached permanently. A warm descent reads once rather than three times.
+
+Fanout is thus a latency decision as well as a space one. Smaller entries fit more per page, which can remove a level from every request in the system. PostgreSQL v12 accordingly [truncates the keys in internal pages](https://www.cybertec-postgresql.com/en/b-tree-index-improvements-in-postgresql-v12/) down to the part that distinguishes one child from the next.
+
+### Increasing queue depth
+
+There are three sources of overlap. Within a single request, only the I/Os that the graph leaves off the longest chain can overlap. For the write above those are the shallow index, the log append and the write-back, and for the read there are none. Across shards, a scatter and gather runs its per-partition chains at the same time. Between these two sits the source that matters most, which is many requests interleaving on one shard. Two requests naming different partitions read entirely different pages, apart from the top of the tree and any shared index, so they interleave without coordination.
+
+<Image src={`${props.assetsUrl}imgs/pipeline.svg`}>
+  Three engines, the same three requests, the descent collapsed to a single `pt` and the deferred write-back omitted. One column is one device latency, and the lane below each panel is device occupancy. (a) one at a time, so the device never exceeds depth one and idles whenever a core runs. (b) admitted one column apart, giving half the wall time at depth three. (c) asynchronous code, but with a lock spanning the whole request, so the device lane is identical to (a).
+</Image>
+
+Panel (b) resembles a processor pipeline, with one difference: the stages are not fixed functional units. The drive serves many requests at once, so depth is bounded by arrival rate and queue size rather than by the number of stages.
+
+In panel (c) every read is a suspension point and every request is a coroutine, yet $C$ remains one. Concurrency already available to an engine is commonly discarded in three ways.
+
+- **A lock whose critical section spans an I/O wait.** We buffer the transaction's writes privately and hold the lock only for the in-memory work. This changes how long the lock is held, not what it guarantees.
+- **Protocol head-of-line blocking.** A handler that awaits each request before reading the next frame limits $C$ to the number of connections, however the layers below it behave. We instead multiplex by request id.
+- **A suspension point that always suspends.** It converts a cache hit, which is the common case, into a scheduling event, and introduces an interleaving point where there was none. We suspend only when the page is absent.
+
+The network stages are the least constrained source of depth, because reads from different connections are independent and none of them forms a chain. The number of requests a shard has outstanding is limited only by how many it admits, which is the second failure above. The network term is not small: a round trip within a datacentre takes tens to hundreds of microseconds, comparable to the entire chain of drive reads it triggers.
+
+All of this submission can use one interface. Linux's `io_uring` allows a thread to place many requests, whether drive reads, socket reads or socket writes, into a shared queue and submit them to the kernel with a single system call, then collect the completions the same way. Network and drive work are batched together rather than handled by separate mechanisms.
+
+### The write-ahead log
+
+A modification changes pages scattered across the data file. A page that has been modified in memory but not yet written is **dirty**. Writing dirty pages to the data file at the moment of commit has two problems: the writes are randomly distributed, and a crash partway through leaves a tree that is structurally invalid rather than merely out of date. A write-ahead log separates the durability of a transaction from the placement of its pages.
+
+- **No page is written before `wa`.** Modifications are applied to cached pages and recorded as log records. The descent still reads from the drive, which is what `pt`<sub>i</sub> and `ix`<sub>i</sub> are, but no write occurs before the append.
+- **Writes to a page coalesce.** A page modified five times is logged once, so log volume follows the number of distinct pages rather than the number of operations. A page dirtied by several transactions is written back by a single `ck`.
+- **`ck` can be ordered.** The write-ahead rule is the only constraint on when a page is written, so the pages owed can be sorted by position and issued as a run of adjacent writes rather than the scattered ones they replace.
+- **`fl` cannot be made concurrent.** At `fl` the drive confirms that the bytes will survive power loss, and that wait is not comparable to a read. [Mark Callaghan](http://smalldatum.blogspot.com/2026/01/ssds-power-loss-protection-and-fsync.html) measures `fdatasync` after a 16 KiB write at $2783\,\mu\text{s}$ on a consumer Samsung 990 Pro, against $0.7\,\mu\text{s}$ on an enterprise Samsung PM-9a3, whose capacitor-backed cache may acknowledge a write before the data reaches flash. A flush cannot be parallelised, but one flush can serve many transactions.
+
+<Image src={`${props.assetsUrl}imgs/group-commit.svg`}>
+  (a) each transaction flushes for itself. Flushes serialise at the device, so the second and third wait (grey) and the group pays for three of them. (b) the appends accumulate and one flush covers all three, at a third of the device cost. The write-back the group owes is drawn dashed, since the write-ahead rule fixes only that it follows the flush, not when.
+</Image>
+
+Group commit makes no individual transaction faster. It makes the first one slower and the aggregate much faster.
+
+The log is read only after a crash. In normal operation the dirty pages are written back by `ck`, and the log covering them can then be truncated. Checkpoint scheduling is therefore a latency decision: large periodic batches cost less in total and produce a stall, while spreading the same pages over time costs more and produces none.
+
+# Tail latency
+
+Two of the decisions above cost throughput. Pinning a shard to a core removes work stealing, so a busy shard cannot use an idle shard's capacity. Choosing a B-tree gives up the cheap appends of an LSM. Both reduce the variance of a request's latency, because both remove a dependence on work the client did not ask for.
+
+<Image src={`${props.assetsUrl}imgs/tail.svg`}>
+  Two engines under identical load. The bursty engine has the lower mean, because its baseline is lower, and a $p_{99}$ several times worse, because it defers work and then performs it in bursts.
+</Image>
+
+An average hides the slow requests. What a client notices is the slow one, so the figure to quote is a **percentile**: the $p_{99}$ latency is the value that 99 requests in 100 fall below. It is determined by whatever the engine was doing when an unlucky request arrived. Deferred work produces exactly those moments, and batching is deferred work we take on deliberately. We take it on under one condition:
+
+> Wait to form a batch only when the cost being amortised is a barrier independent of batch size.
+
+A flush satisfies this, because one flush costs about what ten cost. A page read does not, since holding reads back adds latency and saves only a system call. Reads are therefore batched opportunistically. We submit whatever has accumulated the next time the thread reaches the queue and never wait for more. The trade-offs of driving a database this way are measured in [Jasny et al.](https://arxiv.org/abs/2512.04859)
+
+The runtime contributes its own variance. Cassandra is written in Java, and garbage collection stops the process at times the storage layer neither observes nor controls. Cassandra's `GCInspector` logs any collection longer than 200 ms, and [young-generation pauses of 20 to 50 ms](https://thelastpickle.com/blog/2018/04/11/gc-tuning.html) are common enough that tuning them is routine operational work. A pause of that length exceeds every I/O in the table above combined. An engine without a managed heap does not obtain a lower mean latency from this, but its $p_{99}$ depends on fewer things.
+
+Together these choices hold throughput below the peak the hardware can reach. In exchange, a request's latency depends only on the work that request asked for.
+
+# Implications for users
+
+- **Issue $k$ concurrent requests rather than one naming $k$ keys.** Both raise $C$ by $k$, but the second requires one shard to query the others and wait for the slowest of them. This is the largest effect available from the client.
+- **Concurrency is per connection, not per request.** A driver that will not multiplex limits $C$ to its number of connections, whatever the server does.
+- **Keep transactions short**, especially across network round trips. An open transaction is a lock held across a wait, and it costs every other client $C$, not only you.
+- **The partition key determines $P$.** It decides which rows are stored adjacently, and therefore how many of them one I/O returns.
+- **Judge a system by its $p_{99}$ at your concurrency**, not by its peak throughput at someone else's.
+
+The engine designed above is [plexdb](https://github.com/patricklbell/plexdb), an experimental store speaking the Cassandra and Redis wire protocols over a common storage layer. It is shard-per-core and coroutine-driven in the manner of ScyllaDB, and stores rows in B-trees for the reasons above.
+
+# Further reading
+- [An In-Depth Overview of NVMe and NVMe-oF](https://infohub.delltechnologies.com/en-uk/t/an-in-depth-overview-of-nvme-and-nvme-of/)

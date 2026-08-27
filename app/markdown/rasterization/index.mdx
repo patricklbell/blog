@@ -1,0 +1,279 @@
+> This article assumes familiarity with rendering concepts such as texels, samples, coverage, and shading. It was informed by my work functionally modelling AMD's rasterization stage.
+
+Rasterization is the algorithm responsible for converting a 2D triangle into a set of texel or sample coordinates for shading. The Direct3D and Vulkan graphics APIs both specify formal requirements for rasterization to ensure shaded texels are consistent between vendors. This article explains the requirements in the specifications, and builds a conformant scanline rasterizer for triangles.
+
+# The Specification
+
+Assume framebuffer coordinates have their origin at the upper-left corner of the upper-left texel, with $y$ increasing downwards. Texel $(i,j)$ occupies $[i, i+1) \times [j, j+1)$. A texel contains one or more *samples*, whose positions are defined by the API.
+
+## Point Sampling
+
+Vulkan defines coverage by *point sampling*:
+
+> Fragments are produced for any fragment area groups of pixels for which any sample points lie inside of this polygon. Coverage bits that correspond to sample points that satisfy the point sampling criteria are 1, other coverage bits are 0.
+
+<Image src={`${props.assetsUrl}imgs/point-sampling.svg`}>
+  Coverage is a predicate on sample positions, not a measure of area. The dashed texel is substantially overlapped but produces nothing.
+</Image>
+
+A primitive overlapping most of a texel produces nothing if no sample lies inside it, and a sub-texel sliver produces a fragment if one does.
+
+## The Fill Rule
+
+A sample lying exactly on an edge is a boundary case. It occurs suprisingly often, whenver an edge is axis-aligned on the sample grid.
+
+The Vulkan specification is typically generic, stating
+
+> if two polygons lie on either side of a common edge (with identical endpoints) on which a sample point lies, then exactly one of the polygons must result in a covered sample for that fragment during rasterization.
+
+Direct3D 11.3 is more specific, explicitly requiring the **top-left rule**:
+
+> If an edge is exactly horizontal, and it is above the other edges of the triangle in pixel space, then it is a "top" edge. If an edge is not exactly horizontal, and it is on the left side of the triangle in pixel space, then it is a "left" edge. [...] If a sample location falls exactly on the edge of a triangle, the sample is inside the triangle if the edge is a "top" edge or a "left" edge.
+
+<Image src={`${props.assetsUrl}imgs/top-left.svg`}>
+  A triangle positioned so that samples fall exactly on all three edges. Circled samples are those the rule decides.
+</Image>
+
+<Image src={`${props.assetsUrl}imgs/shared-edge.svg`}>
+  A quad triangulated along a diagonal passing through samples. (a) every edge inclusive, and the diagonal is drawn twice. (b) every edge exclusive, and it is dropped. (c) the top-left rule, covering each sample once. The rule also decides the quad's outer boundary: its top and left edges are covered, its bottom and right are not.
+</Image>
+
+## Fixed Point Coordinates
+
+[Section §3.4.1 of the D3D11.3 specification](https://microsoft.github.io/DirectX-Specs/d3d/archive/D3D11_3_FunctionalSpec.htm#3.4.2%20Triangle%20Rasterization%20Rules) requires that after clipping and the perspective divide, vertex $x$ and $y$ are converted to $n.8$ fixed point. Vulkan exposes the same quantity as `subPixelPrecisionBits`, at least $4$.
+
+[Section §3.2.4](https://microsoft.github.io/DirectX-Specs/d3d/archive/D3D11_3_FunctionalSpec.htm#3.2.4%20Fixed%20Point%20Integers) provides a formal definition of fixed point representations and conversions. As a refresh, fixed point represents a decimal value as an integer with an implicit decimal point at a fixed location, written $i.f$ for $i$ integer bits and $f$ fractional bits.
+
+<Image src={`${props.assetsUrl}imgs/to-fixed.svg`}>
+  Conversion to fixed point, drawn with $f = 3$ rather than the specified $f = 8$. Dashed is the input, solid is its fixed point representation.
+</Image>
+
+After conversion to fixed point, the rasterizer's stages should ensure no rounding occurs. The fixed point triangle defines the exact coverage. 
+
+*Edge case: a primitive of zero area is supposed to produce no fragments. Area is evaluated after conversion, so a primitive with small nonzero area which collapses in $n.8$ must produce nothing rather than a sliver.*
+
+### Operations on Fixed Point Values
+
+The format of a fixed point value propagates as
+
+```math
+    \begin{equation*}
+        \begin{aligned}
+        i_1.f_1 \pm i_2.f_2 &\rightarrow \text{max}(i_1,i_2).\text{max}(f_1,f_2) \\
+        i_1.f_1 \times i_2.f_2 &\rightarrow (i_1+i_2).(f_1+f_2) \\
+        \end{aligned}
+    \end{equation*}
+```
+
+In plain language: addition and subtraction don't require more bits in fixed point but multiplication needs double the bits.
+
+## Viewport Size, Clipping and Guard Bands
+
+Clipping ensure a primitive does not extend outside a certain boundary. Conceptually, this is usually thought of as the edges of the screen. However, because clipping is an expensive operation which amplifies the number of primitives, clipping actually occurs against a **guard band** which can extend well beyond the screen coordinates. A primitive that leaves the viewport but is inside the guard band has out of bounds pixels discarded (or not rasterized at all). Only a primitive leaving the guard band is clipped geometrically.
+
+<Image src={`${props.assetsUrl}imgs/guard-band.svg`}>
+  (a) inside the viewport. (b) outside the viewport but inside the guard band, rasterized whole with the walker clamped. (c) outside the guard band, and the only case that is clipped.
+</Image>
+
+# An Algorithm
+
+## Checking Coverage with Barycentrics
+
+Barycentric coordinates are already needed to interpolate attributes across a triangle. They can also be used to test whether a sample point is covered by a triangle.
+
+Define the edge function
+```math
+D(a,b,c)=(x_b-x_a)(y_c-y_a)-(y_b-y_a)(x_c-x_a),
+```
+which is twice the signed area of $\triangle abc$ (can been seen from cross product). For a triangle with vertices $v_0,v_1,v_2$, define
+```math
+w_0=D(v_0,v_1,p),\qquad
+w_1=D(v_1,v_2,p),\qquad
+w_2=D(v_2,v_0,p).
+```
+
+<Image src={`${props.assetsUrl}imgs/barycentric.svg`}>
+  (a) a sample inside the triangle, where no weight is negative. (b) a sample outside it: the sub-triangle opposite the crossed edge reverses orientation, so $w_1$ changes sign.
+</Image>
+
+These quantities are proportional to the barycentric coordinates of $p$. In particular,
+```math
+w_0+w_1+w_2=D(v_0,v_1,v_2).
+```
+Thus, if the triangle is counterclockwise,
+```math
+\lambda_i=\frac{w_i}{D(v_0,v_1,v_2)}
+```
+are its barycentric coordinates. A point is inside the triangle (including edges) when
+```math
+w_0\ge0,\qquad w_1\ge0,\qquad w_2\ge0.
+```
+For a clockwise triangle, all signs are reversed, so the equivalent test is $w_0,w_1,w_2\le0$.
+
+### The Top-Left Rule
+
+We need to avoid samples which lie exactly on an edge being incorrectly included or excluded.
+For a directed edge $\pmb{a} \rightarrow \pmb{b}$ of our primitive,
+
+```math
+    \begin{equation*}
+        \begin{aligned}
+        \text{top}  &\iff y_a = y_b \;\wedge\; x_b > x_a \\
+        \text{left} &\iff y_b < y_a \\
+        \end{aligned}
+    \end{equation*}
+```
+
+We can encode this constraint directly into our barycentric test by biasing the weights according to the edge conditions. A weight is a product of coordinate differences, so it carries $2f$ fractional bits and its smallest representable increment is $2^{-2f}$. Subtracting one such increment turns $w_i > 0$ into $w_i \geq 0$, and both cases become a single comparison.
+
+```math
+    \begin{equation*}
+        \text{bias}(\pmb{a}, \pmb{b}) =
+        \begin{cases}
+            0        & \text{top or left} \\
+            -2^{-2f} & \text{otherwise}
+        \end{cases}
+    \end{equation*}
+```
+
+```
+bias(a, b):                              # once per edge
+    top  = y_a == y_b and x_b > x_a
+    left = y_b < y_a
+    return 0 if (top or left) else -ulp  # ulp = 2^-2f
+
+covered(p):                              # once per sample, assumes CCW
+    return D(v0, v1, p) + bias(v0, v1) >= 0
+       and D(v1, v2, p) + bias(v1, v2) >= 0
+       and D(v2, v0, p) + bias(v2, v0) >= 0
+```
+
+Each weight is paired with the bias of the edge it is measured against, and the three biases are fixed once the primitive is set up.
+
+## Candidate Texel Walker
+
+Sample positions are the subtexel positions that determine whether a texel is covered.
+
+<Image src={`${props.assetsUrl}imgs/sample-patterns.svg`}>
+  Vulkan standard sample locations, relative to the upper-left corner of a texel. $32\times$ and $64\times$ have no standard positions.
+</Image>
+
+A walker bounded against sample positions would have to account for these subtexel geometries. Bounding against whole texels is conservative and allows any sampling rate, even variable rates.
+
+```math
+    \begin{equation*}
+        \begin{aligned}
+        C &\subseteq T \\ \\
+        C &= \text{Texels containing a covered sample} \\
+        T &= \text{Texels emitted by the walker} \\
+        \end{aligned}
+    \end{equation*}
+```
+
+Divide the framebuffer into horizontal *rows* (or scan lines) of texels. Row $r$ is covered by $y \in [r, r+1)$. Our walker will emit one pair per band,
+
+```math
+    \begin{equation*}
+        \begin{aligned}
+        \text{start}(r) &= \text{min} \; x \; \text{over all edges of the primitive within band } r \\
+        \text{end}(r)   &= \text{max} \; x \; \text{over all edges of the primitive within band } r \\
+        \end{aligned}
+    \end{equation*}
+```
+
+Once we have `start` and `end` we can test each sample.
+
+```
+for y in rows spanned by the primitive:
+    for x in [floor(start[y]), floor(end[y])]:
+        for s in sample_positions:
+            p = (x + s.x, y + s.y)
+            if covered(p): emit(p)
+```
+
+To find `start` and `end` we start by reducing the number of cases by sorting the vertices so that $y_{0} \leq y_{1} \leq y_{2}$. After sorting we have
+- The **long** edge $\pmb{v_0} \rightarrow \pmb{v_2}$ spans the full vertical range.
+- The **short** edges $\pmb{v_0} \rightarrow \pmb{v_1}$ and $\pmb{v_1} \rightarrow \pmb{v_2}$ consisting of an **upper** and **lower** edge with shared vertex $v_1$.
+
+Note that the edge are defined so they go from top to bottom. Depending on the winding order we can clasify the long edge as either a **left** or **right** edge.
+- If the winding order is clockwise: the long edge is a **left** edge.
+- If the winding order is counter-clockwise: the long edge is a **right** edge.
+
+As a small trick, we can compute the winding order cheaply from the parity of the number of swaps we performed when sorting. We flip the pre-sort winding order if the parity is odd.
+
+<Image src={`${props.assetsUrl}imgs/scanline.svg`}>
+  One pair per band. Here the long edge is a left edge, so it supplies every $\text{start}$, and the short edges supply every $\text{end}$. Emitted texels are shaded.
+</Image>
+
+### Interpolating an Edge
+
+Take one edge, running from $\pmb{a}$ down to $\pmb{b}$, so $y_a \leq y_b$. Its contribution to each band is bounded by where it meets the horizontal lines enclosing that band, so what is needed is the $x$ coordinate at every whole $y$ the edge crosses. Call them $x_0 \dots x_{n-1}$, top to bottom.
+
+Two of those $n$ coordinates are not crossings. The edge may begin or end part way through a band, so $x_0 = x_a$ and $x_{n-1} = x_b$, which are already exact. Only the $n-2$ interior coordinates are interpolated, and consecutive whole $y$ lines are exactly one apart, so they are evenly spaced.
+
+
+```math
+    \begin{equation*}
+        \begin{aligned}
+        \text{step} &= \frac{\Delta x}{\Delta y} = \frac{x_b - x_a}{y_b - y_a} \\
+        x_1 &= x_a + (\lceil y_a \rceil - y_a) \cdot \text{step} \\
+        x_{i+1} &= x_i + \text{step}, \qquad i \in [1, n-2) \\
+        \end{aligned}
+    \end{equation*}
+```
+We accumulate $x_{i+1}$ in the direction we are walking here to avoid a multiplication.
+
+We need to account for the rounding introduced by the division when calculating `step`. Held to $k$ fractional bits beyond the coordinate format, the step is off by at most $2^{-(f+k+1)}$, and an edge crossing $N$ rows accumulates $N$ of those. With $f = 8$, $k = 16$ and $N < 2^{15}$ inside the guard band, the total stays under $2^{-10}$, which is a quarter of the $2^{-8}$ spacing of the coordinate grid. Widening each interpolated coordinate outwards by one $2^{-f}$ absorbs it, so no texel is ever missed.
+
+### Reading the Correct End of a Band
+
+Within a band the edge is a straight line, so its extreme $x$ lies at one of the band's two horizontal lines and never between them. The $n$ coordinates bound $n-1$ rows, band $j$ running from $x_j$ down to $x_{j+1}$, and the sign of $\Delta x$ alone says which of the two to take.
+
+A **left** edge contributes to $\text{start}$ and so wants its leftmost point. Given $y_a \leq y_b$ from the sort,
+
+- $\Delta x \geq 0$: the edge moves right as it descends, so each band's leftmost point is on its *upper* line and the walk reads $x_0 \dots x_{n-2}$.
+- $\Delta x < 0$: the edge moves left as it descends, so it is on the *lower* line and the walk reads $x_1 \dots x_{n-1}$.
+
+A **right** edge contributes to $\text{end}$ and takes the opposite line in each case. Reading the wrong one offsets every span by a band of slope, which silently drops the texels down one side of the primitive.
+
+<Image src={`${props.assetsUrl}imgs/direction.svg`}>
+  A left edge with $\Delta x > 0$.
+</Image>
+
+### The Band Containing the Shared Vertex
+
+The short edges meet at $\pmb{v_1}$. This band is a special case with three possible extremes
+
+<Image src={`${props.assetsUrl}imgs/shared-vertex.svg`}>
+  The band holding $\pmb{v_1}$, with the short edges on the right so the extreme wanted is the rightmost. (a) $x_0 < x_1 < x_2$: both increasing right, so the lower edge's crossing wins. (b) $x_0 > x_1 > x_2$: both decreasing left, so the upper edge's wins. (c) $x_0 < x_1 > x_2$: saddle where $\pmb{v_1}$ wins.
+</Image>
+
+### Putting It Together
+
+Here is psuedocode for the walker logic. 
+```
+# precondition: y_a <= y_b
+walk(edge a -> b, side):
+    if y_a == y_b:
+        contribute min or max of x_a, x_b to its single band
+        return
+
+    step = (x_b - x_a) / (y_b - y_a)
+    x    = x_a + (ceil(y_a) - y_a) * step
+
+    top = x_a
+    for j in bands spanned by the edge:
+        bot = x_b if j is the last band else widen(x)
+
+        if edge is left: contribute (step >= 0 ? top : bot) to start
+        else:            contribute (step >= 0 ? bot : top) to end
+
+        top = bot
+        x  += step
+```
+
+*The algorithm presented in this article is one solution consistent with the Vulkan and D3D11 rasterization specifications. While it is a performant serial algorithm it is **not** how GPU hardware works.*
+
+# Further Reading
+- Pineda, [A Parallel Algorithm for Polygon Rasterization](https://doi.org/10.1145/378456.378457).
+- McCormack and McNamara, [Tiled Polygon Traversal Using Half-Plane Edge Functions](https://doi.org/10.1145/346876.346882).

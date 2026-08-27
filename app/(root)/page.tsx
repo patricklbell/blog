@@ -18,7 +18,7 @@ export default async function Home() {
     return <BlogLayout>
         <div className="w-full flex flex-col items-center justify-between gap-16">
             <RecentNews />
-            <AllArticles />
+            <AllArticles recent />
         </div>
     </BlogLayout>
 }
